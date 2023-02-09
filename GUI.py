@@ -1,14 +1,22 @@
 import matplotlib.pyplot as plt
 import csv
-import random
+import tkinter as tk
 
 def main():
-    print("Hello")
     data = readCSV()
-    plot(data)
+    GUI(data)
+
+# User Interface code
+def GUI(data):
+    gui = tk.Tk()
+    startTime = tk.Text()
+    start = tk.Button(text="Show Graph", command=lambda: plot(data, startTime))
+    startTime.pack()
+    start.pack()
+    gui.mainloop()
 
 # Graphs a .CSV file
-def plot(data):
+def plot(data, time):
     dataLength = len(data)
     ts = []
     pl = []
@@ -21,7 +29,7 @@ def plot(data):
             pc.append(float(data[i][3]))
             pr.append(float(data[i][5]))
         except:
-            pass #data[0] is headers
+            pass #data[0] is .CSV headers
     plt.plot(ts, pl, "-r", label="Left", rasterized=True) 
     plt.plot(ts, pc, "-b", label="Center", rasterized=True)
     plt.plot(ts, pr, "-k", label="Right", rasterized=True)
