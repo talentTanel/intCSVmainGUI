@@ -57,14 +57,14 @@ def readCSV():
 
 # Makes two lists the same length for graphing
 def sameLength(X, Y, type):
-    if(type == "end"):
-        while len(X) != len(Y):
+    while len(X) != len(Y):
+        if(type == "end"):
             Y.pop()
-        return Y
-    else:
-        while len(X) != len(Y):
+        else:
             Y.pop(0)
-        return Y
+    return Y
+    
+    
 
 if __name__ == "__main__":
     main()
