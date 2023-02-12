@@ -3,32 +3,15 @@ import csv
 import tkinter as tk
 
 gui = tk.Tk()
+data = []
 
-def main():
-    data = readCSV()
-    data.pop(0)
-    GUI(data)
-
-# User Interface code
-def GUI(data):
+# User Interface
+def GUI():
     gui.geometry("1280x720")
-    startTime = tk.Entry()
-    stopTime = tk.Entry()
-    startTime.place(relx= .1, rely= .1)
-    stopTime.place(relx= .1, rely= .2)
-    graphBtn = tk.Button(text="Show Graph", command=lambda: [plt.close(), plot(data, startTime.get(), stopTime.get())])
-    graphBtn.place(relx= .1, rely= 0)
     gui.mainloop()
 
 # Graphs a .CSV file
 def plot(data, startTime, stopTime):
-    insertText = tk.Label(gui, text="Insertion Point [mbar]: ")
-    insertText.place(relx= 0, rely= .3)
-    insertPoint = tk.Entry()
-    insertPoint.place(relx=.1, rely= .3)
-    insertPoint.insert(0, 1002)
-    insertBtn = tk.Button(text="Suggest")
-    insertBtn.place(relx=.3, rely= .3)
     ts = []
     pl = []
     pc = []
@@ -52,9 +35,7 @@ def plot(data, startTime, stopTime):
     plt.plot(ts, pl, "-r", label="Left") 
     plt.plot(ts, pc, "-b", label="Center")
     plt.plot(ts, pr, "-k", label="Right")
-    if insertPoint.get().isnumeric():
-        tsIn, plIn = getInsertionPoint(insertPoint, pl, ts)
-        plt.plot(tsIn,plIn, "or", label="Insertion Point")
+    getInsertionPoint(pl, ts)
     plt.legend()
     plt.show()
         
@@ -63,6 +44,7 @@ def readCSV():
     file = open("C660913142637.csv","r")
     data = list(csv.reader(file, delimiter=","))
     file.close()
+    data.pop(0)
     return data
 
 # Makes two lists the same length for graphing
@@ -75,14 +57,39 @@ def sameLength(X, Y, type):
     return Y
     
 # Suggests an insertion point by the user's given pressure
-def getInsertionPoint(insertPoint, pl, ts):
-    nr = round(float(insertPoint.get()),2)
-    for i in range(len(pl)):
-        if abs(nr - round(pl[i],2)) < 1:
-            tsIn = ts[i]
-            plIn = pl[i]
-            plt.plot(tsIn,plIn, "or", label="Insertion Point")
-            return tsIn, plIn
+def getInsertionPoint(pl, ts):
+    if insertPoint.get().isnumeric():
+        nr = round(float(insertPoint.get()),2)
+        for i in range(len(pl)):
+            if abs(nr - round(pl[i],2)) < 1:
+                tsIn = ts[i]
+                plIn = pl[i]
+                plt.plot(tsIn,plIn, "or", label="Insertion Point")
+                return tsIn, plIn
+        
+# GUI elements and their placement
+startTime = tk.Entry()
+stopTime = tk.Entry()
+insertPoint = tk.Entry()
+graphBtn = tk.Button(
+    text="Show Graph", 
+    command=lambda: [plt.close(), plot(readCSV(), startTime.get(), stopTime.get())]
+    )
+insertBtn = tk.Button(
+    text="Suggest"
+    )
+insertText = tk.Label(
+    gui, 
+    text="Insertion Point [mbar]: "
+    )
+insertPoint.insert(0, 1002)
+
+insertPoint.place(relx=.1, rely= .3)
+insertBtn.place(relx=.3, rely= .3)
+insertText.place(relx= 0, rely= .3)
+graphBtn.place(relx= .1, rely= 0)
+startTime.place(relx= .1, rely= .1)
+stopTime.place(relx= .1, rely= .2)
 
 if __name__ == "__main__":
-    main()
+    GUI()
