@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+
 import csv
 import tkinter as tk
 
 gui = tk.Tk()
-data = []
 
 # User Interface
 def GUI():
@@ -12,6 +13,7 @@ def GUI():
 
 # Graphs a .CSV file
 def plot(data, startTime, stopTime):
+    fig, graph = plt.subplots()
     ts = []
     pl = []
     pc = []
@@ -32,19 +34,26 @@ def plot(data, startTime, stopTime):
         pl = sameLength(ts,pl,"end") # Removing all values from pressure after stopTime
         pc = sameLength(ts,pc,"end")
         pr = sameLength(ts,pr,"end")
-    plt.plot(ts, pl, "-r", label="Left") 
-    plt.plot(ts, pc, "-b", label="Center")
-    plt.plot(ts, pr, "-k", label="Right")
+    graph.plot(ts, pl, "-r", label="Left") 
+    graph.plot(ts, pc, "-b", label="Center")
+    graph.plot(ts, pr, "-k", label="Right")
     getInsertionPoint(pl, ts)
-    plt.legend()
-    plt.show()
+    graph.legend()
+    canvas = FigureCanvasTkAgg(fig, gui)
+    canvas.draw()
+    #canvas.get_tk_widget().place(relx=.5,rely=.1)
+    canvas.get_tk_widget().pack(side=tk.RIGHT)
+    toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
+    toolbar.update()
+    toolbar.pack(side=tk.RIGHT, fill=tk.X)
+    #plt.show()
         
 # Opens a .CSV file for further processing
 def readCSV():
     file = open("C660913142637.csv","r")
     data = list(csv.reader(file, delimiter=","))
     file.close()
-    data.pop(0)
+    data.pop(0) # data[0] is .CSV headers
     return data
 
 # Makes two lists the same length for graphing
