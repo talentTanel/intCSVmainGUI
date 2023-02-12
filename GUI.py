@@ -11,18 +11,25 @@ def main():
 
 # User Interface code
 def GUI(data):
-    gui.geometry("500x500")
-    #startTime = tk.Text()
+    gui.geometry("1280x720")
     startTime = tk.Entry()
     stopTime = tk.Entry()
     startTime.place(relx= .1, rely= .1)
     stopTime.place(relx= .1, rely= .2)
-    start = tk.Button(text="Show Graph", command=lambda: [plt.close(), plot(data, startTime.get(), stopTime.get())])
-    start.place(relx= .1, rely= 0)
+    graphBtn = tk.Button(text="Show Graph", command=lambda: [plt.close(), plot(data, startTime.get(), stopTime.get())])
+    graphBtn.place(relx= .1, rely= 0)
     gui.mainloop()
 
 # Graphs a .CSV file
 def plot(data, startTime, stopTime):
+    insertText = tk.Label(gui, text="Insertion Point [mbar]: ")
+    insertText.place(relx= 0, rely= .3)
+    insertPoint = tk.Entry()
+    insertPoint.place(relx=.1, rely= .3)
+    insertPoint.insert(0, 1016)
+    insertBtn = tk.Button(text="Suggest")
+    insertBtn.place(relx=.3, rely= .3)
+    inPoint = 0
     ts = []
     pl = []
     pc = []
@@ -46,6 +53,16 @@ def plot(data, startTime, stopTime):
     plt.plot(ts, pl, "-r", label="Left") 
     plt.plot(ts, pc, "-b", label="Center")
     plt.plot(ts, pr, "-k", label="Right")
+    if insertPoint.get().isnumeric():
+        print(pl)
+        print("is numeric")
+        i = 0
+        nr = round(float(insertPoint.get()),2)
+        if nr in pl:
+            tsIn = ts[pl.index(nr)]
+            plIn = pl[pl.index(nr)]
+            plt.plot(tsIn,plIn, "or", label="Insertion Point")
+    plt.legend()
     plt.show()
         
 # Opens a .CSV file for further processing
