@@ -26,10 +26,9 @@ def plot(data, startTime, stopTime):
     insertText.place(relx= 0, rely= .3)
     insertPoint = tk.Entry()
     insertPoint.place(relx=.1, rely= .3)
-    insertPoint.insert(0, 1016)
+    insertPoint.insert(0, 1002)
     insertBtn = tk.Button(text="Suggest")
     insertBtn.place(relx=.3, rely= .3)
-    inPoint = 0
     ts = []
     pl = []
     pc = []
@@ -54,14 +53,8 @@ def plot(data, startTime, stopTime):
     plt.plot(ts, pc, "-b", label="Center")
     plt.plot(ts, pr, "-k", label="Right")
     if insertPoint.get().isnumeric():
-        print(pl)
-        print("is numeric")
-        i = 0
-        nr = round(float(insertPoint.get()),2)
-        if nr in pl:
-            tsIn = ts[pl.index(nr)]
-            plIn = pl[pl.index(nr)]
-            plt.plot(tsIn,plIn, "or", label="Insertion Point")
+        tsIn, plIn = getInsertionPoint(insertPoint, pl, ts)
+        plt.plot(tsIn,plIn, "or", label="Insertion Point")
     plt.legend()
     plt.show()
         
@@ -81,7 +74,15 @@ def sameLength(X, Y, type):
             Y.pop(0)
     return Y
     
-    
+# Suggests an insertion point by the user's given pressure
+def getInsertionPoint(insertPoint, pl, ts):
+    nr = round(float(insertPoint.get()),2)
+    for i in range(len(pl)):
+        if abs(nr - round(pl[i],2)) < 1:
+            tsIn = ts[i]
+            plIn = pl[i]
+            plt.plot(tsIn,plIn, "or", label="Insertion Point")
+            return tsIn, plIn
 
 if __name__ == "__main__":
     main()
