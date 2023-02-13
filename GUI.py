@@ -6,6 +6,10 @@ import tkinter as tk
 
 gui = tk.Tk()
 fig, graph = plt.subplots()
+canvas = FigureCanvasTkAgg(fig, gui)
+#canvas.get_tk_widget().pack(side=tk.RIGHT)
+canvas.get_tk_widget().place(relx=.5,rely=.05)
+toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 
 # User Interface
 def GUI():
@@ -15,6 +19,7 @@ def GUI():
 # Graphs a .CSV file
 def plot(data, startTime, stopTime):
     graph.clear()
+    plt.close("all")
     ts, pl, pc, pr = [], [], [], []
     for i in range(len(data)):
         ts.append(float(data[i][0]))
@@ -33,14 +38,10 @@ def plot(data, startTime, stopTime):
     getInsertionPointAuto(pl, ts, 2)
     #insertionPointBtn(pl, ts, 2)
     graph.legend()
-    canvas = FigureCanvasTkAgg(fig, gui)
     canvas.draw()
-    #canvas.get_tk_widget().place(relx=.5,rely=.1)
-    canvas.get_tk_widget().pack(side=tk.RIGHT)
-    toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
     toolbar.update()
-    toolbar.pack(side=tk.RIGHT, fill=tk.X)
-        
+    toolbar.place(relx=.8, rely=0)
+
 # Opens a .CSV file for further processing
 def readCSV():
     file = open("C660913142637.csv","r")
