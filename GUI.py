@@ -74,18 +74,18 @@ def getInsertionPoint(pl, ts):
 def getInsertionPointAuto(pl, ts, accuracy):
     for i in range(len(pl)-1):
         if abs(pl[i] - pl[i+1]) > accuracy:
-                print(pl[i], pl[i+1])
                 tsIn = ts[i]
                 plIn = pl[i]
                 graph.plot(tsIn,plIn, "or", label="Insertion Point")
                 break
+        
+# Suggests an insertion point when a button is pressed
 def insertionPointBtn(pl, ts, accuracy):
     insertAutoBtn = tk.Button(
     text="Suggest insertion point",
     command=lambda: getInsertionPointAuto(pl, ts, accuracy)
     )
     insertAutoBtn.place(relx=.1,rely=.4)
-
 
 # GUI elements and their placement
 gui = tk.Tk()
