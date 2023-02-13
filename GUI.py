@@ -1,15 +1,10 @@
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-
 import csv
 import tkinter as tk
+import db
 
-gui = tk.Tk()
-fig, graph = plt.subplots()
-canvas = FigureCanvasTkAgg(fig, gui)
-#canvas.get_tk_widget().pack(side=tk.RIGHT)
-canvas.get_tk_widget().place(relx=.5,rely=.05)
-toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
+fileName="C660913142637.csv"
 
 # User Interface
 def GUI():
@@ -40,11 +35,12 @@ def plot(data, startTime, stopTime):
     graph.legend()
     canvas.draw()
     toolbar.update()
-    toolbar.place(relx=.8, rely=0)
+    toolbar.place(relx=.7, rely=0)
+    saveGraphBtn.place(relx=.6, rely=0)
 
 # Opens a .CSV file for further processing
 def readCSV():
-    file = open("C660913142637.csv","r")
+    file = open(fileName,"r")
     data = list(csv.reader(file, delimiter=","))
     file.close()
     data.pop(0) # data[0] is .CSV headers
@@ -90,7 +86,14 @@ def insertionPointBtn(pl, ts, accuracy):
     )
     insertAutoBtn.place(relx=.1,rely=.4)
 
+
 # GUI elements and their placement
+gui = tk.Tk()
+fig, graph = plt.subplots()
+canvas = FigureCanvasTkAgg(fig, gui)
+canvas.get_tk_widget().place(relx=.5,rely=.05)
+toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
+
 startTime = tk.Entry()
 stopTime = tk.Entry()
 insertPoint = tk.Entry()
@@ -98,6 +101,10 @@ graphBtn = tk.Button(
     text="Show Graph", 
     command=lambda: [plt.close(), plot(readCSV(), startTime.get(), stopTime.get())]
     )
+saveGraphBtn = tk.Button(
+    text="Save Graph",
+    command=lambda: db.createTable(fileName.rsplit(".",2)[0])
+)
 insertText = tk.Label(
     gui, 
     text="Insertion Point [mbar]: "
