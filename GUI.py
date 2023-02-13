@@ -5,6 +5,7 @@ import csv
 import tkinter as tk
 
 gui = tk.Tk()
+fig, graph = plt.subplots()
 
 # User Interface
 def GUI():
@@ -13,31 +14,24 @@ def GUI():
 
 # Graphs a .CSV file
 def plot(data, startTime, stopTime):
-    fig, graph = plt.subplots()
-    ts = []
-    pl = []
-    pc = []
-    pr = []
-    dataLength = len(data)
-    for i in range(dataLength):
+    graph.clear()
+    ts, pl, pc, pr = [], [], [], []
+    for i in range(len(data)):
         ts.append(float(data[i][0]))
         pl.append(float(data[i][1]))
         pc.append(float(data[i][3]))
         pr.append(float(data[i][5]))
     if(startTime.isnumeric()): 
         ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
-        pl = sameLength(ts,pl,"0") # Removing all values from pressure before startTime
-        pc = sameLength(ts,pc,"0")
-        pr = sameLength(ts,pr,"0")
+        pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
     if(stopTime.isnumeric()): 
         ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
-        pl = sameLength(ts,pl,"end") # Removing all values from pressure after stopTime
-        pc = sameLength(ts,pc,"end")
-        pr = sameLength(ts,pr,"end")
+        pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
     getInsertionPointAuto(pl, ts, 2)
+    #insertionPointBtn(pl, ts, 2)
     graph.legend()
     canvas = FigureCanvasTkAgg(fig, gui)
     canvas.draw()
@@ -46,7 +40,6 @@ def plot(data, startTime, stopTime):
     toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
     toolbar.update()
     toolbar.pack(side=tk.RIGHT, fill=tk.X)
-    #plt.show()
         
 # Opens a .CSV file for further processing
 def readCSV():
@@ -57,13 +50,17 @@ def readCSV():
     return data
 
 # Makes two lists the same length for graphing
-def sameLength(X, Y, type):
-    while len(X) != len(Y):
+def sameLength(X, pl, pc, pr, type):
+    while len(X) != len(pl):
         if(type == "end"):
-            Y.pop()
+            pl.pop()
+            pc.pop()
+            pr.pop()
         else:
-            Y.pop(0)
-    return Y
+            pl.pop(0)
+            pc.pop(0)
+            pr.pop(0)
+    return pl, pc, pr
     
 # Suggests an insertion point by the user's given pressure
 def getInsertionPoint(pl, ts):
@@ -83,8 +80,14 @@ def getInsertionPointAuto(pl, ts, accuracy):
                 print(pl[i], pl[i+1])
                 tsIn = ts[i]
                 plIn = pl[i]
-                plt.plot(tsIn,plIn, "or", label="Insertion Point")
+                graph.plot(tsIn,plIn, "or", label="Insertion Point")
                 break
+def insertionPointBtn(pl, ts, accuracy):
+    insertAutoBtn = tk.Button(
+    text="Suggest insertion point",
+    command=lambda: getInsertionPointAuto(pl, ts, accuracy)
+    )
+    insertAutoBtn.place(relx=.1,rely=.4)
 
 # GUI elements and their placement
 startTime = tk.Entry()
@@ -94,9 +97,6 @@ graphBtn = tk.Button(
     text="Show Graph", 
     command=lambda: [plt.close(), plot(readCSV(), startTime.get(), stopTime.get())]
     )
-insertBtn = tk.Button(
-    text="Suggest"
-    )
 insertText = tk.Label(
     gui, 
     text="Insertion Point [mbar]: "
@@ -104,7 +104,6 @@ insertText = tk.Label(
 insertPoint.insert(0, 1002)
 
 insertPoint.place(relx=.1, rely= .3)
-insertBtn.place(relx=.3, rely= .3)
 insertText.place(relx= 0, rely= .3)
 graphBtn.place(relx= .1, rely= 0)
 startTime.place(relx= .1, rely= .1)
