@@ -37,7 +37,7 @@ def plot(data, startTime, stopTime):
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
-    getInsertionPoint(pl, ts)
+    getInsertionPointAuto(pl, ts, 2)
     graph.legend()
     canvas = FigureCanvasTkAgg(fig, gui)
     canvas.draw()
@@ -75,7 +75,17 @@ def getInsertionPoint(pl, ts):
                 plIn = pl[i]
                 plt.plot(tsIn,plIn, "or", label="Insertion Point")
                 return tsIn, plIn
-        
+
+# Suggests an insertion point automatically by comparing a pressure to it's following pressure
+def getInsertionPointAuto(pl, ts, accuracy):
+    for i in range(len(pl)-1):
+        if abs(pl[i] - pl[i+1]) > accuracy:
+                print(pl[i], pl[i+1])
+                tsIn = ts[i]
+                plIn = pl[i]
+                plt.plot(tsIn,plIn, "or", label="Insertion Point")
+                break
+
 # GUI elements and their placement
 startTime = tk.Entry()
 stopTime = tk.Entry()
