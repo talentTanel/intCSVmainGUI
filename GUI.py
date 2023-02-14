@@ -5,7 +5,7 @@ import tkinter as tk
 import db
 
 fileName="C660913142637.csv"
-
+insertionPointXY = []
 # User Interface
 def GUI():
     gui.geometry("1280x720")
@@ -30,7 +30,8 @@ def plot(data, startTime, stopTime):
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
-    insertionPointBtn(pl, ts, 2)
+    insertionPointDef(pl, ts, 2)
+    #insertionPointBtn(pl, ts, 2)
     graph.legend()
     canvas.draw()
     toolbar.update()
@@ -77,6 +78,8 @@ def getInsertionPointAuto(pl, ts, accuracy):
                 plIn = pl[i]
                 graph.plot(tsIn,plIn, "or", label="Insertion Point")
                 canvas.draw()
+                global insertionPointXY
+                insertionPointXY = [tsIn, plIn]
                 break
         
 # Suggests an insertion point when a button is pressed
@@ -87,11 +90,18 @@ def insertionPointBtn(pl, ts, accuracy):
     )
     insertAutoBtn.place(relx=.1,rely=.4)
 
+def insertionPointDef(pl, ts, accuracy):
+    if not insertionPointXY:
+        insertionPointBtn(pl, ts, accuracy)
+    else:
+        print(insertionPointXY)
+
+
 # Saves graph and points of interest on it to database
 def saveGraph(ts, pl, pc, pr):
     saveGraphBtn = tk.Button(
     text="Save Graph",
-    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr)
+    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, insertionPointXY)
     )
     saveGraphBtn.place(relx=.6, rely=0)
 
