@@ -59,6 +59,11 @@ def sameLength(X, pl, pc, pr, type):
             pr.pop(0)
     return pl, pc, pr
     
+# Checks if an insertion point is already available
+def insertionPointDef(pl, ts, accuracy):
+    if not insertionPointXY:
+        insertionPointBtn(pl, ts, accuracy)
+
 # Suggests an insertion point by the user's given pressure
 def getInsertionPoint(pl, ts):
     if insertPoint.get().isnumeric():
@@ -67,7 +72,7 @@ def getInsertionPoint(pl, ts):
             if abs(nr - round(pl[i],2)) < 1:
                 tsIn = ts[i]
                 plIn = pl[i]
-                plt.plot(tsIn,plIn, "or", label="Insertion Point")
+                plt.plot(tsIn,plIn, "or", label="Insertion Point", color="red")
                 return tsIn, plIn
 
 # Suggests an insertion point automatically by comparing a pressure to it's following pressure
@@ -77,24 +82,21 @@ def getInsertionPointAuto(pl, ts, accuracy):
                 tsIn = ts[i]
                 plIn = pl[i]
                 graph.plot(tsIn,plIn, "or", label="Insertion Point")
+                print(ts[0], tsIn)
+                print((ts[0]+tsIn)/2.5)
+                graph.annotate("Insertion Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
                 canvas.draw()
                 global insertionPointXY
                 insertionPointXY = [tsIn, plIn]
                 break
         
-# Suggests an insertion point when a button is pressed
+# Suggests an insertion point when a specific button is pressed
 def insertionPointBtn(pl, ts, accuracy):
     insertAutoBtn = tk.Button(
     text="Suggest insertion point",
     command=lambda: getInsertionPointAuto(pl, ts, accuracy)
     )
     insertAutoBtn.place(relx=.1,rely=.4)
-
-def insertionPointDef(pl, ts, accuracy):
-    if not insertionPointXY:
-        insertionPointBtn(pl, ts, accuracy)
-    else:
-        print(insertionPointXY)
 
 
 # Saves graph and points of interest on it to database
