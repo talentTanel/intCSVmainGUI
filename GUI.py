@@ -30,13 +30,12 @@ def plot(data, startTime, stopTime):
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
-    getInsertionPointAuto(pl, ts, 2)
-    #insertionPointBtn(pl, ts, 2)
+    insertionPointBtn(pl, ts, 2)
     graph.legend()
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
-    saveGraphBtn.place(relx=.6, rely=0)
+    saveGraph(ts, pl, pc, pr)
 
 # Opens a .CSV file for further processing
 def readCSV():
@@ -77,6 +76,7 @@ def getInsertionPointAuto(pl, ts, accuracy):
                 tsIn = ts[i]
                 plIn = pl[i]
                 graph.plot(tsIn,plIn, "or", label="Insertion Point")
+                canvas.draw()
                 break
         
 # Suggests an insertion point when a button is pressed
@@ -86,6 +86,14 @@ def insertionPointBtn(pl, ts, accuracy):
     command=lambda: getInsertionPointAuto(pl, ts, accuracy)
     )
     insertAutoBtn.place(relx=.1,rely=.4)
+
+# Saves graph and points of interest on it to database
+def saveGraph(ts, pl, pc, pr):
+    saveGraphBtn = tk.Button(
+    text="Save Graph",
+    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr)
+    )
+    saveGraphBtn.place(relx=.6, rely=0)
 
 # GUI elements and their placement
 gui = tk.Tk()
@@ -101,10 +109,6 @@ graphBtn = tk.Button(
     text="Show Graph", 
     command=lambda: [plt.close(), plot(readCSV(), startTime.get(), stopTime.get())]
     )
-saveGraphBtn = tk.Button(
-    text="Save Graph",
-    command=lambda: db.createTable(fileName.rsplit(".",2)[0])
-)
 insertText = tk.Label(
     gui, 
     text="Insertion Point [mbar]: "
