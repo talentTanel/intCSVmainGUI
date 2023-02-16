@@ -15,7 +15,7 @@ def GUI():
 # Graphs a .CSV file
 def plot(data, startTime, stopTime):
     graph.clear()
-    plt.close("all")
+    #plt.close("all")
     ts, pl, pc, pr = [], [], [], []
     for i in range(len(data)):
         ts.append(float(data[i][0]))
@@ -39,6 +39,15 @@ def plot(data, startTime, stopTime):
     toolbar.place(relx=.7, rely=0)
     saveGraph(ts, pl, pc, pr)
 
+# Gets graph from database data
+def plotFromDB():
+    graph.clear()
+    tsD, plD, pcD, prD, ipX, ipY = db.getTable(fileName.rsplit(".",2)[0])
+    graph.plot(tsD, plD, "-r", label="Left") 
+    graph.plot(tsD, pcD, "-b", label="Center")
+    graph.plot(tsD, prD, "-k", label="Right")
+    insertionPointFromDB(tsD, ipX, ipY)
+    
 # Opens a .CSV file for further processing
 def readCSV():
     file = open(fileName,"r")
@@ -67,7 +76,17 @@ def insertionPointDef(pl, ts):
         global ann, ip
         ipt = graph.plot(insertionPointXY[0],insertionPointXY[1], "or", label="Insertion Point")
         ip = ipt.pop(0)
-        ann =graph.annotate("Insertion Point", xy=(insertionPointXY[0], insertionPointXY[1]), xytext=((ts[0]+insertionPointXY[0])/2.5,insertionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        ann = graph.annotate("Insertion Point", xy=(insertionPointXY[0], insertionPointXY[1]), xytext=((ts[0]+insertionPointXY[0])/2.5,insertionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        canvas.draw()
+
+# Gets insertion point from database if it exists
+def insertionPointFromDB(tsD, ipX, ipY):
+    if ipX:
+        print (ipX, ipY)
+        global ann, ip
+        ipt = graph.plot(ipX, ipY, "or", label="Insertion Point")
+        ip = ipt.pop(0)
+        ann = graph.annotate("Insertion Point", xy=(ipX, ipY), xytext=((tsD[0]+ipX)/2.5,ipY-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
 
 # Suggests an insertion point automatically by comparing a pressure to it's following pressure
@@ -122,6 +141,11 @@ graphBtn = tk.Button(
     text="Show Graph", 
     command=lambda: [plt.close(), plot(readCSV(), startTime.get(), stopTime.get())]
     )
+testBtn = tk.Button(
+    text="Show Graph from database", 
+    command=lambda: [plt.close(), plotFromDB()]
+    )
+testBtn.place(relx=.2,rely=0)
 graphBtn.place(relx= .1, rely= 0)
 startTime.place(relx= .1, rely= .1)
 lblStartTime.place(relx= .05, rely= .1)

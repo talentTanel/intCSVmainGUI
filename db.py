@@ -19,3 +19,23 @@ def insertToTable(tableName, ts, pl, pc, pr, ipXY):
     for i in range(len(ts)-1):
         cur.execute("INSERT INTO \"{}\" (timeStamp, pl, pc, pr) VALUES ({}, {}, {}, {})".format(tableName, ts[i+j], pl[i+j], pc[i+j], pr[i+j]))
     conn.commit()
+
+def getTable(tableName):
+    tsD, plD, pcD, prD = [], [], [], []
+    ipX, ipY = None, None
+    cur = conn.cursor()
+    result = cur.execute("SELECT * FROM {}".format(tableName))
+    j=0
+    for dbData in result.fetchall():
+        tsD.append(dbData[0])
+        plD.append(dbData[1])
+        pcD.append(dbData[2])
+        prD.append(dbData[3])
+        if j==0:
+            ipX = dbData[4]
+            ipY = dbData[5]
+            j = j + 1
+    return tsD, plD, pcD, prD, ipX, ipY
+
+#tsD, plD, pcD, prD, ipX, ipY = getTable("C660913142637")
+#print(ipX, ipY)
