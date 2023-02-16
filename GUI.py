@@ -82,7 +82,6 @@ def insertionPointDef(pl, ts):
 # Gets insertion point from database if it exists
 def insertionPointFromDB(tsD, ipX, ipY):
     if ipX:
-        print (ipX, ipY)
         global ann, ip
         ipt = graph.plot(ipX, ipY, "or", label="Insertion Point")
         ip = ipt.pop(0)
