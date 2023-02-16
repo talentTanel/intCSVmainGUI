@@ -6,6 +6,7 @@ import db
 
 fileName="C660913142637.csv"
 insertionPointXY = []
+ann, ip = None, None
 # User Interface
 def GUI():
     gui.geometry("1280x720")
@@ -30,7 +31,7 @@ def plot(data, startTime, stopTime):
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
-    insertionPointDef(pl, ts, 2)
+    insertionPointDef(pl, ts)
     #insertionPointBtn(pl, ts, 2)
     graph.legend()
     canvas.draw()
@@ -59,44 +60,41 @@ def sameLength(X, pl, pc, pr, type):
             pr.pop(0)
     return pl, pc, pr
     
-# Checks if an insertion point is already available
-def insertionPointDef(pl, ts, accuracy):
-    if not insertionPointXY:
-        insertionPointBtn(pl, ts, accuracy)
-
-# Suggests an insertion point by the user's given pressure
-def getInsertionPoint(pl, ts):
-    if insertPoint.get().isnumeric():
-        nr = round(float(insertPoint.get()),2)
-        for i in range(len(pl)):
-            if abs(nr - round(pl[i],2)) < 1:
-                tsIn = ts[i]
-                plIn = pl[i]
-                plt.plot(tsIn,plIn, "or", label="Insertion Point", color="red")
-                return tsIn, plIn
+# Checks if an insertion point is already available, if there is - displays it
+def insertionPointDef(pl, ts):
+    insertionPointBtn(pl, ts)
+    if insertionPointXY:
+        global ann, ip
+        ipt = graph.plot(insertionPointXY[0],insertionPointXY[1], "or", label="Insertion Point")
+        ip = ipt.pop(0)
+        ann =graph.annotate("Insertion Point", xy=(insertionPointXY[0], insertionPointXY[1]), xytext=((ts[0]+insertionPointXY[0])/2.5,insertionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        canvas.draw()
 
 # Suggests an insertion point automatically by comparing a pressure to it's following pressure
-def getInsertionPointAuto(pl, ts, accuracy):
+def getInsertionPointAuto(pl, ts):
     for i in range(len(pl)-1):
-        if abs(pl[i] - pl[i+1]) > accuracy:
+        if abs(pl[i] - pl[i+1]) > int(insertSlider.get()):
+                global insertionPointXY, ann, ip
+                if ann: ann.remove(), ip.remove()
                 tsIn = ts[i]
                 plIn = pl[i]
-                graph.plot(tsIn,plIn, "or", label="Insertion Point")
-                print(ts[0], tsIn)
-                print((ts[0]+tsIn)/2.5)
-                graph.annotate("Insertion Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+                ipt = graph.plot(tsIn,plIn, "or", label="Insertion Point")
+                ip = ipt.pop(0)
+                ann = graph.annotate("Insertion Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
                 canvas.draw()
-                global insertionPointXY
                 insertionPointXY = [tsIn, plIn]
                 break
         
 # Suggests an insertion point when a specific button is pressed
-def insertionPointBtn(pl, ts, accuracy):
+def insertionPointBtn(pl, ts):
     insertAutoBtn = tk.Button(
-    text="Suggest insertion point",
-    command=lambda: getInsertionPointAuto(pl, ts, accuracy)
+    text="Suggest new insertion point",
+    command=lambda: getInsertionPointAuto(pl, ts)
     )
-    insertAutoBtn.place(relx=.1,rely=.4)
+    insertAutoBtn.place(relx=.1,rely=.3)
+    insertSlider.place(relx=.1, rely=.35)
+    insertSlider.set(2)
+    lblInsertText.place(relx=.027,rely=.375)
 
 
 # Saves graph and points of interest on it to database
@@ -115,23 +113,19 @@ canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 
 startTime = tk.Entry()
+lblStartTime = tk.Label(text="Start time:")
 stopTime = tk.Entry()
-insertPoint = tk.Entry()
+lblStopTime = tk.Label(text="Stop time:")
+insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
+lblInsertText = tk.Label(text="Pressure change:")
 graphBtn = tk.Button(
     text="Show Graph", 
     command=lambda: [plt.close(), plot(readCSV(), startTime.get(), stopTime.get())]
     )
-insertText = tk.Label(
-    gui, 
-    text="Insertion Point [mbar]: "
-    )
-insertPoint.insert(0, 1002)
-
-insertPoint.place(relx=.1, rely= .3)
-insertText.place(relx= 0, rely= .3)
 graphBtn.place(relx= .1, rely= 0)
 startTime.place(relx= .1, rely= .1)
+lblStartTime.place(relx= .05, rely= .1)
 stopTime.place(relx= .1, rely= .2)
-
+lblStopTime.place(relx= .05, rely= .2)
 if __name__ == "__main__":
     GUI()
