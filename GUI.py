@@ -2,9 +2,12 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import csv
 import tkinter as tk
+from tkinter import filedialog
+import os
 import db
 
-fileName="C660913142637.csv"
+
+fileName=""
 insertionPointXY = []
 ann, ip = None, None
 # User Interface
@@ -13,15 +16,15 @@ def GUI():
     gui.mainloop()
 
 # Graphs a .CSV file
-def plot(data, startTime, stopTime):
+def plot(csvData, startTime, stopTime):
     graph.clear()
     #plt.close("all")
     ts, pl, pc, pr = [], [], [], []
-    for i in range(len(data)):
-        ts.append(float(data[i][0]))
-        pl.append(float(data[i][1]))
-        pc.append(float(data[i][3]))
-        pr.append(float(data[i][5]))
+    for i in range(len(csvData)):
+        ts.append(float(csvData[i][0]))
+        pl.append(float(csvData[i][1]))
+        pc.append(float(csvData[i][3]))
+        pr.append(float(csvData[i][5]))
     if(startTime.isnumeric()): 
         ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
         pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
@@ -38,6 +41,15 @@ def plot(data, startTime, stopTime):
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
     saveGraph(ts, pl, pc, pr)
+    graphOptions()
+    
+
+def graphOptions():
+    startTime.place(relx= .1, rely= .1)
+    lblStartTime.place(relx= .05, rely= .1)
+    stopTime.place(relx= .1, rely= .2)
+    lblStopTime.place(relx= .05, rely= .2)
+    updateGraphBtn.place(relx=.21,rely=.09)
 
 # Gets graph from database data
 def plotFromDB():
@@ -49,7 +61,10 @@ def plotFromDB():
     insertionPointFromDB(tsD, ipX, ipY)
     
 # Opens a .CSV file for further processing
-def readCSV():
+def readCSV(e):
+    if e == 1:
+        global fileName
+        fileName = os.path.basename(filedialog.askopenfilename())
     file = open(fileName,"r")
     data = list(csv.reader(file, delimiter=","))
     file.close()
@@ -110,9 +125,9 @@ def insertionPointBtn(pl, ts):
     command=lambda: getInsertionPointAuto(pl, ts)
     )
     insertAutoBtn.place(relx=.1,rely=.3)
-    insertSlider.place(relx=.1, rely=.35)
+    insertSlider.place(relx=.11, rely=.35)
     insertSlider.set(2)
-    lblInsertText.place(relx=.027,rely=.375)
+    lblInsertText.place(relx=0,rely=.375)
 
 
 # Saves graph and points of interest on it to database
@@ -135,20 +150,20 @@ lblStartTime = tk.Label(text="Start time:")
 stopTime = tk.Entry()
 lblStopTime = tk.Label(text="Stop time:")
 insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
-lblInsertText = tk.Label(text="Pressure change:")
-graphBtn = tk.Button(
-    text="Show Graph", 
-    command=lambda: [plt.close(), plot(readCSV(), startTime.get(), stopTime.get())]
+lblInsertText = tk.Label(text="Pressure change [mbar]:")
+newGraphBtn = tk.Button(
+    text="New Graph", 
+    command=lambda: [plt.close(), plot(readCSV(1), "None", "None")]
     )
 testBtn = tk.Button(
-    text="Show Graph from database", 
+    text="Show saved graphs", 
     command=lambda: [plt.close(), plotFromDB()]
     )
+updateGraphBtn = tk.Button(
+    text="Update Graph",
+    command=lambda: [plt.close(), plot(readCSV(0), startTime.get(), stopTime.get())]
+)
 testBtn.place(relx=.2,rely=0)
-graphBtn.place(relx= .1, rely= 0)
-startTime.place(relx= .1, rely= .1)
-lblStartTime.place(relx= .05, rely= .1)
-stopTime.place(relx= .1, rely= .2)
-lblStopTime.place(relx= .05, rely= .2)
+newGraphBtn.place(relx= .1, rely= 0)
 if __name__ == "__main__":
     GUI()
