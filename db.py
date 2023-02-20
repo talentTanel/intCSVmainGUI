@@ -37,5 +37,13 @@ def getTable(tableName):
             j = j + 1
     return tsD, plD, pcD, prD, ipX, ipY
 
+def getAllTables():
+    tables = []
+    cur = conn.cursor()
+    result = cur.execute("SELECT * FROM sqlite_schema WHERE type='table'")
+    for table in result.fetchall():
+        tables.append(table[1])
+    return tables
+
 #tsD, plD, pcD, prD, ipX, ipY = getTable("C660913142637")
 #print(ipX, ipY)
