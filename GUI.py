@@ -4,7 +4,7 @@ import csv
 import tkinter as tk
 from tkinter import filedialog
 import os
-import db
+import db, savedGraphs
 
 
 fileName=""
@@ -121,6 +121,7 @@ def getInsertionPointAuto(pl, ts):
 # Suggests an insertion point when a specific button is pressed
 def insertionPointBtn(pl, ts):
     insertAutoBtn = tk.Button(
+    gui, 
     text="Suggest new insertion point",
     command=lambda: getInsertionPointAuto(pl, ts)
     )
@@ -133,10 +134,14 @@ def insertionPointBtn(pl, ts):
 # Saves graph and points of interest on it to database
 def saveGraph(ts, pl, pc, pr):
     saveGraphBtn = tk.Button(
+    gui, 
     text="Save Graph",
     command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, insertionPointXY)
     )
     saveGraphBtn.place(relx=.6, rely=0)
+
+def openSavedGraphs():
+    savedGraphs.openWindow()
 
 # GUI elements and their placement
 gui = tk.Tk()
@@ -145,21 +150,24 @@ canvas = FigureCanvasTkAgg(fig, gui)
 canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 
-startTime = tk.Entry()
-lblStartTime = tk.Label(text="Start time:")
-stopTime = tk.Entry()
-lblStopTime = tk.Label(text="Stop time:")
+startTime = tk.Entry(gui)
+lblStartTime = tk.Label(gui, text="Start time:")
+stopTime = tk.Entry(gui)
+lblStopTime = tk.Label(gui, text="Stop time:")
 insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
-lblInsertText = tk.Label(text="Pressure change [mbar]:")
+lblInsertText = tk.Label(gui, text="Pressure change [mbar]:")
 newGraphBtn = tk.Button(
+    gui, 
     text="New Graph", 
     command=lambda: [plt.close(), plot(readCSV(1), "None", "None")]
     )
 testBtn = tk.Button(
+    gui, 
     text="Show saved graphs", 
-    command=lambda: [plt.close(), plotFromDB()]
+    command=lambda: openSavedGraphs()
     )
 updateGraphBtn = tk.Button(
+    gui, 
     text="Update Graph",
     command=lambda: [plt.close(), plot(readCSV(0), startTime.get(), stopTime.get())]
 )
