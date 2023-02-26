@@ -6,7 +6,6 @@ from tkinter import filedialog
 import os
 import db, savedGraphs
 
-
 fileName=""
 insertionPointXY = []
 ann, ip = None, None
@@ -16,33 +15,46 @@ def GUI():
     gui.mainloop()
 
 # Graphs a .CSV file
-def plot(csvData, startTime, stopTime):
+def plot(graphData, startTime, stopTime):
     graph.clear()
     #plt.close("all")
     ts, pl, pc, pr = [], [], [], []
-    for i in range(len(csvData)):
-        ts.append(float(csvData[i][0]))
-        pl.append(float(csvData[i][1]))
-        pc.append(float(csvData[i][3]))
-        pr.append(float(csvData[i][5]))
-    if(startTime.isnumeric()): 
-        ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
-        pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
-    if(stopTime.isnumeric()): 
-        ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
-        pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
+    if len(graphData) != 4:
+        for i in range(len(graphData)):
+            ts.append(float(graphData[i][0]))
+            pl.append(float(graphData[i][1]))
+            pc.append(float(graphData[i][3]))
+            pr.append(float(graphData[i][5]))
+    else:
+        ts = graphData[0]
+        pl = graphData[1]
+        pc = graphData[2]
+        pr = graphData[3]
+    if(isFloat(startTime) == False):
+        if(startTime.isnumeric()): 
+            ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
+            pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
+        if(stopTime.isnumeric()): 
+            ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
+            pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
     insertionPointDef(pl, ts)
-    #insertionPointBtn(pl, ts, 2)
     graph.legend()
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
     saveGraph(ts, pl, pc, pr)
     graphOptions()
-    
+
+# Checks if a number is a float or not. Used for startTime when gotten from database
+def isFloat(num):
+    try:
+        float(num)
+        return True
+    except ValueError:
+        return False
 
 def graphOptions():
     startTime.place(relx= .1, rely= .1)
@@ -52,13 +64,11 @@ def graphOptions():
     updateGraphBtn.place(relx=.21,rely=.09)
 
 # Gets graph from database data
-def plotFromDB():
+def plotFromDB(table):
     graph.clear()
-    tsD, plD, pcD, prD, ipX, ipY = db.getTable(fileName.rsplit(".",2)[0])
-    graph.plot(tsD, plD, "-r", label="Left") 
-    graph.plot(tsD, pcD, "-b", label="Center")
-    graph.plot(tsD, prD, "-k", label="Right")
-    insertionPointFromDB(tsD, ipX, ipY)
+    data, ipX, ipY = db.getTable(table.rsplit(".",2)[0])
+    plot(data, data[0][0], data[0][len(data[0])-1])
+    #insertionPointFromDB(data[0], ipX, ipY)
     
 # Opens a .CSV file for further processing
 def readCSV(e):
@@ -173,5 +183,6 @@ updateGraphBtn = tk.Button(
 )
 testBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
+
 if __name__ == "__main__":
     GUI()

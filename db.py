@@ -22,7 +22,6 @@ def insertToTable(tableName, ts, pl, pc, pr, ipXY):
 
 def getTable(tableName):
     tsD, plD, pcD, prD = [], [], [], []
-    ipX, ipY = None, None
     cur = conn.cursor()
     result = cur.execute("SELECT * FROM {}".format(tableName))
     j=0
@@ -35,7 +34,8 @@ def getTable(tableName):
             ipX = dbData[4]
             ipY = dbData[5]
             j = j + 1
-    return tsD, plD, pcD, prD, ipX, ipY
+    data = [tsD, plD, pcD, prD]
+    return data, ipX, ipY
 
 def getAllTables():
     tables = []
@@ -45,5 +45,5 @@ def getAllTables():
         tables.append(table[1])
     return tables
 
-#tsD, plD, pcD, prD, ipX, ipY = getTable("C660913142637")
-#print(ipX, ipY)
+#data, ipx, ipy = getTable("C660913142637")
+#print (data[0])
