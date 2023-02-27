@@ -17,7 +17,6 @@ def GUI():
 # Graphs a .CSV file
 def plot(graphData, startTime, stopTime):
     graph.clear()
-    #plt.close("all")
     ts, pl, pc, pr = [], [], [], []
     ts, pl, pc, pr = appendElements(ts, pl, pc, pr, graphData)
     ts, pl, pc, pr = startStopTimes(ts, pl, pc, pr, startTime, stopTime)
@@ -74,6 +73,11 @@ def graphOptions():
     stopTime.place(relx= .1, rely= .2)
     lblStopTime.place(relx= .05, rely= .2)
     updateGraphBtn.place(relx=.21,rely=.09)
+    lblFileName.config(text="File Name: {}".format(fileName))
+    lblFileName.place(relx=.5,rely=.75)
+    lblInsertionPoint.place(relx=.5,rely=.8)
+    lblMaximumPoint.place(relx=.5,rely=.85)
+    lblMinimumPoint.place(relx=.5,rely=.9)
 
 # Gets graph from database data
 def plotFromDB(table):
@@ -91,6 +95,10 @@ def readCSV(e):
     data = list(csv.reader(file, delimiter=","))
     file.close()
     data.pop(0) # data[0] is .CSV headers
+    resetLabels()
+    global annIp, ip, annMax, maximum, annMin, minimum, insertionPointXY, maxPointXY, minPointXY
+    insertionPointXY, maxPointXY, minPointXY = [], [], []
+    annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
     return data
 
 # Makes two lists the same length for graphing
@@ -121,6 +129,7 @@ def maximumPoint(pl, ts):
         tsPlace = ts[len(ts)-1] / 8
         annMax = graph.annotate("Maximum Point", xy=(maxPointXY[0], maxPointXY[1]), xytext=(maxPointXY[0]-tsPlace, maxPointXY[1]+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
+        lblMaximumPoint.config(text="Maximum Pressure [mbar]: {}".format(maxPointXY[1]))
 
 # Finds the highest pressure in variable and that is the maximum point. Displays it on the graph
 def getMaximumPoint(pl, ts):
@@ -134,6 +143,7 @@ def getMaximumPoint(pl, ts):
     annMax = graph.annotate("Maximum Point", xy=(maxTs, maxPl), xytext=(maxTs-tsPlace, maxPl+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
     maxPointXY = [maxTs, maxPl]
+    lblMaximumPoint.config(text="Maximum Pressure [mbar]: {}".format(maxPl))
 
 # Checks if an minimum point is already available, if there is - displays it
 def minimumPoint(pl, ts):
@@ -148,8 +158,9 @@ def minimumPoint(pl, ts):
         minimumt = graph.plot(minPointXY[0], minPointXY[1], "or", label="Minimum point")
         minimum = minimumt.pop(0)
         tsPlace = ts[len(ts)-1] / 8
-        annmin = graph.annotate("Minimum Point", xy=(minPointXY[0], minPointXY[1]), xytext=(minPointXY[0]-tsPlace, minPointXY[1]-200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        annmin = graph.annotate("Minimum Point", xy=(minPointXY[0], minPointXY[1]), xytext=(minPointXY[0]-tsPlace, minPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
+        lblMinimumPoint.config(text="Minimum Pressure [mbar]: {}".format(minPointXY[1]))
 
 # Finds the lowest pressure in variable and that is the minimum point. Displays it on the graph
 def getMinimumPoint(pl, ts):
@@ -160,9 +171,10 @@ def getMinimumPoint(pl, ts):
     minimumt = graph.plot(minTs, minPl, "or", label="minimum point")
     minimum = minimumt.pop(0)
     tsPlace = ts[len(ts)-1] / 8
-    annmin = graph.annotate("Minimum Point", xy=(minTs, minPl), xytext=(minTs-tsPlace, minPl-200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+    annmin = graph.annotate("Minimum Point", xy=(minTs, minPl), xytext=(minTs-tsPlace, minPl-259), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
     minPointXY = [minTs, minPl]
+    lblMinimumPoint.config(text="Minimum Pressure [mbar]: {}".format(minPl))
 
 # Checks if an insertion point is already available, if there is - displays it
 def insertionPointDef(pl, ts):
@@ -173,6 +185,7 @@ def insertionPointDef(pl, ts):
         ip = ipt.pop(0)
         annIp = graph.annotate("Insertion Point", xy=(insertionPointXY[0], insertionPointXY[1]), xytext=((ts[0]+insertionPointXY[0])/2.5,insertionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
+        lblInsertionPoint.config(text="Insertion Point: {} [mbar] {} [second]".format(insertionPointXY[1], insertionPointXY[0]))
 
 # Gets insertion point from database if it exists
 def insertionPointFromDB(tsD, ipX, ipY):
@@ -196,6 +209,7 @@ def getInsertionPointAuto(pl, ts):
                 annIp = graph.annotate("Insertion Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
                 canvas.draw()
                 insertionPointXY = [tsIn, plIn]
+                lblInsertionPoint.config(text="Insertion Point: {} [mbar] {} [second]".format(plIn, tsIn))
                 break
         
 # Suggests an insertion point when a specific button is pressed
@@ -210,6 +224,11 @@ def insertionPointBtn(pl, ts):
     insertSlider.set(2)
     lblInsertText.place(relx=0,rely=.375)
 
+def resetLabels():
+    lblFileName.config(text="File Name: -")
+    lblInsertionPoint.config(text="Insertion Point: -")
+    lblMaximumPoint.config(text="Maximum Pressure [mbar]: -")
+    lblMinimumPoint.config(text="Minimum Pressure [mbar]: -")
 
 # Saves graph and points of interest on it to database
 def saveGraph(ts, pl, pc, pr):
@@ -230,6 +249,10 @@ canvas = FigureCanvasTkAgg(fig, gui)
 canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 
+lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
+lblInsertionPoint = tk.Label(gui, text="Insertion Point: -", font=("Arial",14))
+lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
+lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
 startTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
 stopTime = tk.Entry(gui)
