@@ -38,7 +38,6 @@ def config():
 def getSelectedGraph(e):
     for i in tableList.curselection():
         GUI.plotFromDB(tableList.get(i))
-        #plotFromDB(tableList.get(i))
     root.destroy()
 
 if __name__ == "__main__":

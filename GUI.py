@@ -19,24 +19,8 @@ def plot(graphData, startTime, stopTime):
     graph.clear()
     #plt.close("all")
     ts, pl, pc, pr = [], [], [], []
-    if len(graphData) != 4:
-        for i in range(len(graphData)):
-            ts.append(float(graphData[i][0]))
-            pl.append(float(graphData[i][1]))
-            pc.append(float(graphData[i][3]))
-            pr.append(float(graphData[i][5]))
-    else:
-        ts = graphData[0]
-        pl = graphData[1]
-        pc = graphData[2]
-        pr = graphData[3]
-    if(isFloat(startTime) == False):
-        if(startTime.isnumeric()): 
-            ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
-            pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
-        if(stopTime.isnumeric()): 
-            ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
-            pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
+    ts, pl, pc, pr = appendElements(ts, pl, pc, pr, graphData)
+    ts, pl, pc, pr = startStopTimes(ts, pl, pc, pr, startTime, stopTime)
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
@@ -48,7 +32,17 @@ def plot(graphData, startTime, stopTime):
     saveGraph(ts, pl, pc, pr)
     graphOptions()
 
-# Checks if a number is a float or not. Used for startTime when gotten from database
+# If a start or stop time has been set, then this function removes everything not in those ranges
+def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
+    if(isFloat(startTime) == True):
+        ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
+        pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
+    if(isFloat(stopTime) == True):
+        ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
+        pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
+    return ts, pl, pc, pr
+
+# Checks if a number is a float or not. Used for startTime & stopTime
 def isFloat(num):
     try:
         float(num)
@@ -56,6 +50,22 @@ def isFloat(num):
     except ValueError:
         return False
 
+# Reads the data from .CSV or database and inserts into each corresponding variable
+def appendElements(ts, pl, pc, pr, graphData):
+    if len(graphData) != 4: # When gotten from db the size is 4
+        for i in range(len(graphData)):
+            ts.append(float(graphData[i][0]))
+            pl.append(float(graphData[i][1]))
+            pc.append(float(graphData[i][3]))
+            pr.append(float(graphData[i][5]))
+    else:
+        ts = graphData[0]
+        pl = graphData[1]
+        pc = graphData[2]
+        pr = graphData[3]
+    return ts, pl, pc, pr
+
+# Places multiple GUI elements when a graph is plotted for the first time
 def graphOptions():
     startTime.place(relx= .1, rely= .1)
     lblStartTime.place(relx= .05, rely= .1)
