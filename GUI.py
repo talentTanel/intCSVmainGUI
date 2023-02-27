@@ -7,8 +7,8 @@ import os
 import db, savedGraphs
 
 fileName=""
-insertionPointXY, maximumPointXY = [], []
-annIp, ip, annMax, maximum = None, None, None, None
+insertionPointXY, maxPointXY, minPointXY = [], [], []
+annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
 # User Interface
 def GUI():
     gui.geometry("1280x720")
@@ -26,6 +26,7 @@ def plot(graphData, startTime, stopTime):
     graph.plot(ts, pr, "-k", label="Right")
     insertionPointDef(pl, ts)
     maximumPoint(pl, ts)
+    minimumPoint(pl, ts)
     graph.legend()
     canvas.draw()
     toolbar.update()
@@ -105,6 +106,7 @@ def sameLength(X, pl, pc, pr, type):
             pr.pop(0)
     return pl, pc, pr
     
+# Checks if an maximum point is already available, if there is - displays it
 def maximumPoint(pl, ts):
     maximumPointBtn = tk.Button(
         gui, 
@@ -112,27 +114,55 @@ def maximumPoint(pl, ts):
         command=lambda: getMaximumPoint(pl, ts)
         )
     maximumPointBtn.place(relx=.1, rely=.42)
-    if maximumPointXY:
+    if maxPointXY:
         global annMax, maximum
-        maximumt = graph.plot(maximumPointXY[0], maximumPointXY[1], "or", label="Maximum point")
+        maximumt = graph.plot(maxPointXY[0], maxPointXY[1], "or", label="Maximum point")
         maximum = maximumt.pop(0)
         tsPlace = ts[len(ts)-1] / 8
-        annMax = graph.annotate("Maximum Point", xy=(maximumPointXY[0], maximumPointXY[1]), xytext=(maximumPointXY[0]-tsPlace, maximumPointXY[1]+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        annMax = graph.annotate("Maximum Point", xy=(maxPointXY[0], maxPointXY[1]), xytext=(maxPointXY[0]-tsPlace, maxPointXY[1]+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
 
+# Finds the highest pressure in variable and that is the maximum point. Displays it on the graph
 def getMaximumPoint(pl, ts):
     maxPl = max(pl)
     maxTs = ts[pl.index(maxPl)]
     
-    global annMax, maximum, maximumPointXY
+    global annMax, maximum, maxPointXY
     maximumt = graph.plot(maxTs, maxPl, "or", label="Maximum point")
     maximum = maximumt.pop(0)
     tsPlace = ts[len(ts)-1] / 8
     annMax = graph.annotate("Maximum Point", xy=(maxTs, maxPl), xytext=(maxTs-tsPlace, maxPl+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
-    maximumPointXY = [maxTs, maxPl]
+    maxPointXY = [maxTs, maxPl]
 
+# Checks if an minimum point is already available, if there is - displays it
+def minimumPoint(pl, ts):
+    minimumPointBtn = tk.Button(
+        gui, 
+        text="Suggest Minimum point",
+        command=lambda: getminimumPoint(pl, ts)
+        )
+    minimumPointBtn.place(relx=.1, rely=.52)
+    if minPointXY:
+        global annmin, minimum
+        minimumt = graph.plot(minPointXY[0], minPointXY[1], "or", label="Minimum point")
+        minimum = minimumt.pop(0)
+        tsPlace = ts[len(ts)-1] / 8
+        annmin = graph.annotate("Minimum Point", xy=(minPointXY[0], minPointXY[1]), xytext=(minPointXY[0]-tsPlace, minPointXY[1]-200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        canvas.draw()
+
+# Finds the lowest pressure in variable and that is the minimum point. Displays it on the graph
+def getminimumPoint(pl, ts):
+    minPl = min(pl)
+    minTs = ts[pl.index(minPl)]
     
+    global annmin, minimum, minPointXY
+    minimumt = graph.plot(minTs, minPl, "or", label="minimum point")
+    minimum = minimumt.pop(0)
+    tsPlace = ts[len(ts)-1] / 8
+    annmin = graph.annotate("Minimum Point", xy=(minTs, minPl), xytext=(minTs-tsPlace, minPl-200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+    canvas.draw()
+    minPointXY = [minTs, minPl]
 
 # Checks if an insertion point is already available, if there is - displays it
 def insertionPointDef(pl, ts):
