@@ -26,14 +26,17 @@ def plot(graphData, startTime, stopTime):
     insertionPointDef(pl, ts)
     maximumPoint(pl, ts)
     minimumPoint(pl, ts)
+    getRange(pl, ts)
     graph.legend()
+    graph.set_xlabel("Time [s]")
+    graph.set_ylabel("Pressure [mbar]")
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
     saveGraph(ts, pl, pc, pr)
     graphOptions()
 
-# If a start or stop time has been set, then this function removes everything not in those ranges
+# If a start or stop time has been set this function removes everything not in those ranges
 def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
     if(isFloat(startTime) == True):
         ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
@@ -43,6 +46,26 @@ def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
         pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
     return ts, pl, pc, pr
 
+# Automatically finds the region of interest in graph from maximum pressure point
+def findRange(pl ,ts):
+    maxPl = max(pl)
+    startTs = ts[pl.index(maxPl)]-40
+    stopTs = ts[pl.index(maxPl)]+50
+    startTime.delete(0, tk.END)
+    stopTime.delete(0, tk.END)
+    startTime.insert(0, round(startTs))
+    stopTime.insert(0, round(stopTs))
+    plt.close()
+    plot(readCSV(0), startTime.get(), stopTime.get())
+
+# Button for finding area of interest
+def getRange(pl, ts):
+    getRangeBtn = tk.Button(
+        gui,
+        text="Get area of interest",
+        command= lambda: findRange(pl, ts)
+    )
+    getRangeBtn.place(relx=.21, rely=.15)
 # Checks if a number is a float or not. Used for startTime & stopTime
 def isFloat(num):
     try:
