@@ -140,7 +140,7 @@ def minimumPoint(pl, ts):
     minimumPointBtn = tk.Button(
         gui, 
         text="Suggest Minimum point",
-        command=lambda: getminimumPoint(pl, ts)
+        command=lambda: getMinimumPoint(pl, ts)
         )
     minimumPointBtn.place(relx=.1, rely=.52)
     if minPointXY:
@@ -152,7 +152,7 @@ def minimumPoint(pl, ts):
         canvas.draw()
 
 # Finds the lowest pressure in variable and that is the minimum point. Displays it on the graph
-def getminimumPoint(pl, ts):
+def getMinimumPoint(pl, ts):
     minPl = min(pl)
     minTs = ts[pl.index(minPl)]
     
