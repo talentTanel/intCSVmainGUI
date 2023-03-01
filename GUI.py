@@ -27,7 +27,7 @@ def plot(graphData, startTime, stopTime):
     maximumPoint(pl, ts)
     minimumPoint(pl, ts)
     getRange(pl, ts)
-    graph.legend()
+    graph.legend(loc="upper right")
     graph.set_xlabel("Time [s]")
     graph.set_ylabel("Pressure [mbar]")
     canvas.draw()
@@ -105,7 +105,16 @@ def graphOptions():
 # Gets graph from database data
 def plotFromDB(table):
     graph.clear()
-    data, ipX, ipY = db.getTable(table.rsplit(".",2)[0])
+    data, ipX, ipY, maxX, maxY, minX, minY = db.getTable(table.rsplit(".",2)[0])
+    if ipX:
+        global insertionPointXY
+        insertionPointXY = [ipX, ipY]
+    if maxX:
+        global maxPointXY
+        maxPointXY = [maxX, maxY]
+    if minX:
+        global minPointXY
+        minPointXY = [minX, minY]
     plot(data, data[0][0], data[0][len(data[0])-1])
     #insertionPointFromDB(data[0], ipX, ipY)
     
@@ -119,9 +128,10 @@ def readCSV(e):
     file.close()
     data.pop(0) # data[0] is .CSV headers
     resetLabels()
-    global annIp, ip, annMax, maximum, annMin, minimum, insertionPointXY, maxPointXY, minPointXY
-    insertionPointXY, maxPointXY, minPointXY = [], [], []
-    annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
+    if e != 0:
+        global annIp, ip, annMax, maximum, annMin, minimum, insertionPointXY, maxPointXY, minPointXY
+        insertionPointXY, maxPointXY, minPointXY = [], [], []
+        annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
     return data
 
 # Makes two lists the same length for graphing
@@ -259,7 +269,7 @@ def saveGraph(ts, pl, pc, pr):
     saveGraphBtn = tk.Button(
     gui, 
     text="Save Graph",
-    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, insertionPointXY)
+    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, insertionPointXY, maxPointXY, minPointXY)
     )
     saveGraphBtn.place(relx=.6, rely=0)
 
@@ -283,7 +293,7 @@ class SavedGraphs:
         for i in range(len(tables)):
             table = " " + tables[i] + ".csv"
             self.tableList.insert(i, table)
-        for i in range(40):
+        for i in range(20):
             self.tableList.insert(tk.END, (" " + str(i)))
         self.tableList.config(yscrollcommand=tableScroll.set)
         self.tableList.bind('<Double-Button-1>', self.getSelectedGraph)
@@ -296,7 +306,7 @@ class SavedGraphs:
         tableScroll = tk.Scrollbar(self.savedGUI, command= tableList.yview)
         return tableLabel, tableList, tableScroll
 
-    # Gets the graph that is double-clicked from local database and graphs it
+    # Gets the double-clicked element from the list and finds it in the local database
     def getSelectedGraph(self, e):
         for i in self.tableList.curselection():
             plotFromDB(self.tableList.get(i))

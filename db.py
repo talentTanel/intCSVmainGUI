@@ -5,19 +5,26 @@ conn = sqlite3.connect("./database/data.db")
 # Creates a table in database with the file's name
 def createTable(tableName):
     cur = conn.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS {} (timeStamp float, pl float, pc float, pr float, InsertionPointX float, InsertionPointY)".format(tableName))
+    cur.execute("CREATE TABLE IF NOT EXISTS {} (timeStamp float, pl float, pc float, pr float, InsertionPointX float, InsertionPointY float, maxPointX float, maxPointY float, minPointX float, minPointY float)".format(tableName))
 
 # Inserts data to a file's table
-def insertToTable(tableName, ts, pl, pc, pr, ipXY):
+def insertToTable(tableName, ts, pl, pc, pr, ipXY, maxPointXY, minPointXY):
     createTable(tableName)
     cur = conn.cursor()
-    j=0
     cur.execute("DELETE FROM {}".format(tableName))
+    ipX, ipY, maxX, maxY, minX, minY = 0, 0, 0, 0, 0, 0 
     if ipXY:
-        cur.execute("INSERT INTO \"{}\" VALUES ({}, {}, {}, {}, {}, {})".format(tableName, ts[0], pl[0], pc[0], pr[0], ipXY[0],ipXY[1]))
-        j=1
+        ipX = ipXY[0]
+        ipY = ipXY[1]
+    if maxPointXY:
+        maxX = maxPointXY[0]
+        maxY = maxPointXY[1]
+    if minPointXY:
+        minX = minPointXY[0]
+        minY = minPointXY[1]
+    cur.execute("INSERT INTO \"{}\" VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {})".format(tableName, ts[0], pl[0], pc[0], pr[0], ipX, ipY, maxX, maxY, minX, minY))
     for i in range(len(ts)-1):
-        cur.execute("INSERT INTO \"{}\" (timeStamp, pl, pc, pr) VALUES ({}, {}, {}, {})".format(tableName, ts[i+j], pl[i+j], pc[i+j], pr[i+j]))
+        cur.execute("INSERT INTO \"{}\" (timeStamp, pl, pc, pr) VALUES ({}, {}, {}, {})".format(tableName, ts[i+1], pl[i+1], pc[i+1], pr[i+1]))
     conn.commit()
 
 def getTable(tableName):
@@ -33,9 +40,13 @@ def getTable(tableName):
         if j==0:
             ipX = dbData[4]
             ipY = dbData[5]
+            maxX = dbData[6]
+            maxY = dbData[7]
+            minX = dbData[8]
+            minY = dbData[9]
             j = j + 1
     data = [tsD, plD, pcD, prD]
-    return data, ipX, ipY
+    return data, ipX, ipY, maxX, maxY, minX, minY
 
 def getAllTables():
     tables = []
