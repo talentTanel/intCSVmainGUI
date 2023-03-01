@@ -51,12 +51,12 @@ def findRange(pl ,ts):
     maxPl = max(pl)
     startTs = ts[pl.index(maxPl)]-40
     stopTs = ts[pl.index(maxPl)]+50
-    startTime.delete(0, tk.END)
-    stopTime.delete(0, tk.END)
-    startTime.insert(0, round(startTs))
-    stopTime.insert(0, round(stopTs))
+    txtStartTime.delete(0, tk.END)
+    txtStopTime.delete(0, tk.END)
+    txtStartTime.insert(0, round(startTs))
+    txtStopTime.insert(0, round(stopTs))
     plt.close()
-    plot(readCSV(0), startTime.get(), stopTime.get())
+    plot(readCSV(0), txtStartTime.get(), txtStopTime.get())
 
 # Button for finding area of interest
 def getRange(pl, ts):
@@ -91,16 +91,19 @@ def appendElements(ts, pl, pc, pr, graphData):
 
 # Places multiple GUI elements when a graph is plotted for the first time
 def graphOptions():
-    startTime.place(relx= .1, rely= .1)
+    txtStartTime.place(relx= .1, rely= .1)
     lblStartTime.place(relx= .05, rely= .1)
-    stopTime.place(relx= .1, rely= .2)
+    txtStopTime.place(relx= .1, rely= .2)
     lblStopTime.place(relx= .05, rely= .2)
     updateGraphBtn.place(relx=.21,rely=.09)
+    lblScenario.place(relx=.5, rely=.72)
+    txtScenario.place(relx=.57, rely=.73)
+    txtScenario.insert(tk.END, "-")
     lblFileName.config(text="File Name: {}".format(fileName))
-    lblFileName.place(relx=.5,rely=.75)
-    lblInsertionPoint.place(relx=.5,rely=.8)
-    lblMaximumPoint.place(relx=.5,rely=.85)
-    lblMinimumPoint.place(relx=.5,rely=.9)
+    lblFileName.place(relx=.5,rely=.8)
+    lblInsertionPoint.place(relx=.5,rely=.85)
+    lblMaximumPoint.place(relx=.5,rely=.9)
+    lblMinimumPoint.place(relx=.5,rely=.95)
 
 # Gets graph from database data
 def plotFromDB(table):
@@ -118,7 +121,13 @@ def plotFromDB(table):
         minPointXY = [minX, minY]
     global fileName
     fileName = tableName.replace(" ", "") + ".csv"
-    plot(data, data[0][0], data[0][len(data[0])-1])
+    startTime = data[0][0]
+    stopTime = data[0][len(data[0])-1]
+    txtStartTime.delete(0, tk.END)
+    txtStartTime.insert(tk.END, round(startTime))
+    txtStopTime.delete(0, tk.END)
+    txtStopTime.insert(tk.END, round(stopTime))
+    plot(data, startTime, stopTime)
     
 # Opens a .CSV file for further processing
 def readCSV(e):
@@ -321,13 +330,15 @@ canvas = FigureCanvasTkAgg(fig, gui)
 canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 
+lblScenario = tk.Label(gui, text="Scenario:", font=("Arial",14))
 lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
 lblInsertionPoint = tk.Label(gui, text="Insertion Point: -", font=("Arial",14))
 lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
 lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
-startTime = tk.Entry(gui)
+txtScenario = tk.Text(gui, width=40, height=2, font=("Arial",13))
+txtStartTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
-stopTime = tk.Entry(gui)
+txtStopTime = tk.Entry(gui)
 lblStopTime = tk.Label(gui, text="Stop time:")
 insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
 lblInsertText = tk.Label(gui, text="Pressure change [mbar]:")
@@ -344,7 +355,7 @@ savedGraphsBtn = tk.Button(
 updateGraphBtn = tk.Button(
     gui, 
     text="Update Graph",
-    command=lambda: [plt.close(), plot(readCSV(0), startTime.get(), stopTime.get())]
+    command=lambda: [plt.close(), plot(readCSV(0), txtStartTime.get(), txtStopTime.get())]
 )
 savedGraphsBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
