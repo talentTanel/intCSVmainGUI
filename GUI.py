@@ -247,6 +247,7 @@ def insertionPointBtn(pl, ts):
     insertSlider.set(2)
     lblInsertText.place(relx=0,rely=.375)
 
+# Resets the values of labels to their default state when loading in a new file
 def resetLabels():
     lblFileName.config(text="File Name: -")
     lblInsertionPoint.config(text="Insertion Point: -")
@@ -262,44 +263,44 @@ def saveGraph(ts, pl, pc, pr):
     )
     saveGraphBtn.place(relx=.6, rely=0)
 
-# GUI for graphs saved in local database
-def savedGraphsGUI():
-    global savedGUI
-    savedGUI = tk.Toplevel()
-    savedGUI.geometry("500x300")
-    savedGUI.title("Saved Graphs")
-    savedGUI.resizable(False,False)
-    savedGraphsList()
-    savedGUI.mainloop()
+# This class is for getting all the locally saved graphs and listing them
+class SavedGraphs:
+    # GUI for graphs saved in local database
+    def savedGraphsGUI(self):
+        self.savedGUI = tk.Toplevel()
+        self.savedGUI.geometry("500x300")
+        self.savedGUI.title("Saved Graphs")
+        self.savedGUI.resizable(False,False)
+        self.savedGraphsList()
+        self.savedGUI.mainloop()
 
-# Gets all saved graphs and displays them in a list
-def savedGraphsList():
-    global tableList
-    tableLabel, tableList, tableScroll = savedGraphsElements()
-    tables = db.getAllTables()
-    tableList.place(relx=.02,rely=.2)
-    tableLabel.grid(row=0,column=0, pady=35, padx=10)
-    for i in range(len(tables)):
-        table = " " + tables[i] + ".csv"
-        tableList.insert(i, table)
-    for i in range(40):
-        tableList.insert(tk.END, (" " + str(i)))
-    tableList.config(yscrollcommand=tableScroll.set)
-    tableList.bind('<Double-Button-1>', getSelectedGraph)
-    tableScroll.place(relx=.4,rely=.2)
+    # Gets all saved graphs and displays them in a list
+    def savedGraphsList(self):
+        tableLabel, self.tableList, tableScroll = self.savedGraphsElements()
+        tables = db.getAllTables()
+        self.tableList.place(relx=.02,rely=.2)
+        tableLabel.grid(row=0,column=0, pady=35, padx=10)
+        for i in range(len(tables)):
+            table = " " + tables[i] + ".csv"
+            self.tableList.insert(i, table)
+        for i in range(40):
+            self.tableList.insert(tk.END, (" " + str(i)))
+        self.tableList.config(yscrollcommand=tableScroll.set)
+        self.tableList.bind('<Double-Button-1>', self.getSelectedGraph)
+        tableScroll.place(relx=.4,rely=.2)
 
-# GUI elements for saved graphs
-def savedGraphsElements():
-    tableLabel = tk.Label(savedGUI, text="Saved Tables:")
-    tableList = tk.Listbox(savedGUI, width=30, height=14, activestyle="none", selectmode="extended")
-    tableScroll = tk.Scrollbar(savedGUI, command= tableList.yview)
-    return tableLabel, tableList, tableScroll
+    # GUI elements for saved graphs
+    def savedGraphsElements(self):
+        tableLabel = tk.Label(self.savedGUI, text="Saved Tables:")
+        tableList = tk.Listbox(self.savedGUI, width=30, height=14, activestyle="none", selectmode="extended")
+        tableScroll = tk.Scrollbar(self.savedGUI, command= tableList.yview)
+        return tableLabel, tableList, tableScroll
 
-# Gets the graph that is double-clicked from local database and graphs it
-def getSelectedGraph(e):
-    for i in tableList.curselection():
-        plotFromDB(tableList.get(i))
-    savedGUI.destroy()
+    # Gets the graph that is double-clicked from local database and graphs it
+    def getSelectedGraph(self, e):
+        for i in self.tableList.curselection():
+            plotFromDB(self.tableList.get(i))
+        self.savedGUI.destroy()
 
 # GUI elements and their placement
 gui = tk.Tk()
@@ -326,7 +327,7 @@ newGraphBtn = tk.Button(
 savedGraphsBtn = tk.Button(
     gui, 
     text="Show saved graphs", 
-    command=lambda: savedGraphsGUI()
+    command=lambda: SavedGraphs().savedGraphsGUI()
     )
 updateGraphBtn = tk.Button(
     gui, 

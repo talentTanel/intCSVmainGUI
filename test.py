@@ -1,28 +1,38 @@
-# Checks if an minimum point is already available, if there is - displays it
-def minimumPoint(pl, ts):
-    minimumPointBtn = tk.Button(
-        gui, 
-        text="Suggest Minimum point",
-        command=lambda: getminimumPoint(pl, ts)
-        )
-    minimumPointBtn.place(relx=.1, rely=.42)
-    if minPointXY:
-        global annmin, minimum
-        minimumt = graph.plot(minPointXY[0], minPointXY[1], "or", label="minimum point")
-        minimum = minimumt.pop(0)
-        tsPlace = ts[len(ts)-1] / 8
-        annmin = graph.annotate("Minimum Point", xy=(minPointXY[0], minPointXY[1]), xytext=(minPointXY[0]-tsPlace, minPointXY[1]+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
+# GUI for graphs saved in local database
+def savedGraphsGUI():
+    global savedGUI
+    savedGUI = tk.Toplevel()
+    savedGUI.geometry("500x300")
+    savedGUI.title("Saved Graphs")
+    savedGUI.resizable(False,False)
+    savedGraphsList()
+    savedGUI.mainloop()
 
-# Finds the lowest pressure in variable and that is the minimum point. Displays it on the graph
-def getminimumPoint(pl, ts):
-    minPl = min(pl)
-    minTs = ts[pl.index(minPl)]
-    
-    global annmin, minimum, minPointXY
-    minimumt = graph.plot(minTs, minPl, "or", label="minimum point")
-    minimum = minimumt.pop(0)
-    tsPlace = ts[len(ts)-1] / 8
-    annmin = graph.annotate("Minimum Point", xy=(minTs, minPl), xytext=(minTs-tsPlace, minPl+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    minPointXY = [minTs, minPl]
+# Gets all saved graphs and displays them in a list
+def savedGraphsList():
+    global tableList
+    tableLabel, tableList, tableScroll = savedGraphsElements()
+    tables = db.getAllTables()
+    tableList.place(relx=.02,rely=.2)
+    tableLabel.grid(row=0,column=0, pady=35, padx=10)
+    for i in range(len(tables)):
+        table = " " + tables[i] + ".csv"
+        tableList.insert(i, table)
+    for i in range(40):
+        tableList.insert(tk.END, (" " + str(i)))
+    tableList.config(yscrollcommand=tableScroll.set)
+    tableList.bind('<Double-Button-1>', getSelectedGraph)
+    tableScroll.place(relx=.4,rely=.2)
+
+# GUI elements for saved graphs
+def savedGraphsElements():
+    tableLabel = tk.Label(savedGUI, text="Saved Tables:")
+    tableList = tk.Listbox(savedGUI, width=30, height=14, activestyle="none", selectmode="extended")
+    tableScroll = tk.Scrollbar(savedGUI, command= tableList.yview)
+    return tableLabel, tableList, tableScroll
+
+# Gets the graph that is double-clicked from local database and graphs it
+def getSelectedGraph(e):
+    for i in tableList.curselection():
+        plotFromDB(tableList.get(i))
+    savedGUI.destroy()
