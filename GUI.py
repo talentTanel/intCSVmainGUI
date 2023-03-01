@@ -117,10 +117,8 @@ def plotFromDB(table):
         global minPointXY
         minPointXY = [minX, minY]
     global fileName
-    fileName = tableName + ".csv"
-    fileName = fileName.replace(" ", "")
+    fileName = tableName.replace(" ", "") + ".csv"
     plot(data, data[0][0], data[0][len(data[0])-1])
-    #insertionPointFromDB(data[0], ipX, ipY)
     
 # Opens a .CSV file for further processing
 def readCSV(e):
