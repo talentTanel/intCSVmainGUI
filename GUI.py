@@ -91,14 +91,14 @@ def appendElements(ts, pl, pc, pr, graphData):
 
 # Places multiple GUI elements when a graph is plotted for the first time
 def graphOptions():
+    editScenarioBtn.place(relx=.72,rely=.73)
     txtStartTime.place(relx= .1, rely= .1)
     lblStartTime.place(relx= .05, rely= .1)
     txtStopTime.place(relx= .1, rely= .2)
     lblStopTime.place(relx= .05, rely= .2)
     updateGraphBtn.place(relx=.21,rely=.09)
     lblScenario.place(relx=.5, rely=.72)
-    txtScenario.place(relx=.57, rely=.73)
-    txtScenario.insert(tk.END, "-")
+    lblScenarioText.place(relx=.57, rely=.72)
     lblFileName.config(text="File Name: {}".format(fileName))
     lblFileName.place(relx=.5,rely=.8)
     lblInsertionPoint.place(relx=.5,rely=.85)
@@ -109,7 +109,7 @@ def graphOptions():
 def plotFromDB(table):
     graph.clear()
     tableName = table.rsplit(".",2)[0]
-    data, ipX, ipY, maxX, maxY, minX, minY = db.getTable(tableName)
+    data, ipX, ipY, maxX, maxY, minX, minY, scenario = db.getTable(tableName)
     if ipX:
         global insertionPointXY
         insertionPointXY = [ipX, ipY]
@@ -121,6 +121,7 @@ def plotFromDB(table):
         minPointXY = [minX, minY]
     global fileName
     fileName = tableName.replace(" ", "") + ".csv"
+    lblScenarioText.config(text=scenario)
     startTime = data[0][0]
     stopTime = data[0][len(data[0])-1]
     txtStartTime.delete(0, tk.END)
@@ -139,11 +140,15 @@ def readCSV(e):
     file.close()
     data.pop(0) # data[0] is .CSV headers
     resetLabels()
+    resetOnNewFile(e)
+    return data
+
+def resetOnNewFile(e):
     if e != 0:
         global annIp, ip, annMax, maximum, annMin, minimum, insertionPointXY, maxPointXY, minPointXY
         insertionPointXY, maxPointXY, minPointXY = [], [], []
         annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
-    return data
+        lblScenarioText.config(text="")
 
 # Makes two lists the same length for graphing
 def sameLength(X, pl, pc, pr, type):
@@ -280,9 +285,27 @@ def saveGraph(ts, pl, pc, pr):
     saveGraphBtn = tk.Button(
     gui, 
     text="Save Graph",
-    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, insertionPointXY, maxPointXY, minPointXY)
+    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, insertionPointXY, maxPointXY, minPointXY, lblScenarioText.cget("text"))
     )
     saveGraphBtn.place(relx=.6, rely=0)
+
+# Function for editing the file's scenario
+def editScenario(e):
+    if (e == 0):
+        lblScenarioText.place_forget()
+        txtScenario.delete("1.0", tk.END)
+        txtScenario.place(relx=.57, rely=.73)
+        text = lblScenarioText.cget("text")
+        text = text.rstrip("\n")
+        txtScenario.insert(tk.END, text)
+        editScenarioBtn.place_forget()
+        saveScenarioBtn.place(relx=.72,rely=.73)
+    else:
+        lblScenarioText.config(text=txtScenario.get("1.0", tk.END))
+        lblScenarioText.place(relx=.57, rely=.72)
+        txtScenario.place_forget()
+        saveScenarioBtn.place_forget()
+        editScenarioBtn.place(relx=.72,rely=.73)
 
 # This class is for getting all the locally saved graphs and listing them
 class SavedGraphs:
@@ -331,11 +354,12 @@ canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 
 lblScenario = tk.Label(gui, text="Scenario:", font=("Arial",14))
+lblScenarioText = tk.Label(gui, text="", font=("Arial",14))
 lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
 lblInsertionPoint = tk.Label(gui, text="Insertion Point: -", font=("Arial",14))
 lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
 lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
-txtScenario = tk.Text(gui, width=40, height=2, font=("Arial",13))
+txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
 txtStartTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
 txtStopTime = tk.Entry(gui)
@@ -356,6 +380,18 @@ updateGraphBtn = tk.Button(
     gui, 
     text="Update Graph",
     command=lambda: [plt.close(), plot(readCSV(0), txtStartTime.get(), txtStopTime.get())]
+)
+editScenarioBtn = tk.Button(
+    gui,
+    text="EDIT SCENARIO",
+    font=("Arial bold",12),
+    command=lambda: editScenario(0)
+    )
+saveScenarioBtn = tk.Button(
+    gui,
+    text="SAVE SCENARIO",
+    font=("Arial bold",12),
+    command=lambda: editScenario(1)
 )
 savedGraphsBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
