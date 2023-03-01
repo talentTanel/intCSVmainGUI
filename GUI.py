@@ -105,7 +105,8 @@ def graphOptions():
 # Gets graph from database data
 def plotFromDB(table):
     graph.clear()
-    data, ipX, ipY, maxX, maxY, minX, minY = db.getTable(table.rsplit(".",2)[0])
+    tableName = table.rsplit(".",2)[0]
+    data, ipX, ipY, maxX, maxY, minX, minY = db.getTable(tableName)
     if ipX:
         global insertionPointXY
         insertionPointXY = [ipX, ipY]
@@ -115,6 +116,9 @@ def plotFromDB(table):
     if minX:
         global minPointXY
         minPointXY = [minX, minY]
+    global fileName
+    fileName = tableName + ".csv"
+    fileName = fileName.replace(" ", "")
     plot(data, data[0][0], data[0][len(data[0])-1])
     #insertionPointFromDB(data[0], ipX, ipY)
     
