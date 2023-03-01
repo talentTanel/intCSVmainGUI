@@ -119,17 +119,22 @@ def plotFromDB(table):
     if minX:
         global minPointXY
         minPointXY = [minX, minY]
+    startTime = data[0][0]
+    stopTime = data[0][len(data[0])-1]
+    resetOnPullDB(tableName, scenario, startTime, stopTime)
+    plot(data, startTime, stopTime)
+    
+# Resets & updates GUI element values when getting a new graph from db
+def resetOnPullDB(tableName, scenario, startTime, stopTime):
     global fileName
     fileName = tableName.replace(" ", "") + ".csv"
     lblScenarioText.config(text=scenario)
-    startTime = data[0][0]
-    stopTime = data[0][len(data[0])-1]
     txtStartTime.delete(0, tk.END)
     txtStartTime.insert(tk.END, round(startTime))
     txtStopTime.delete(0, tk.END)
     txtStopTime.insert(tk.END, round(stopTime))
-    plot(data, startTime, stopTime)
-    
+
+
 # Opens a .CSV file for further processing
 def readCSV(e):
     if e == 1:
