@@ -4,7 +4,7 @@ import csv
 import tkinter as tk
 from tkinter import filedialog
 import os
-import db, savedGraphs
+import db
 
 fileName=""
 insertionPointXY, maxPointXY, minPointXY = [], [], []
@@ -262,8 +262,44 @@ def saveGraph(ts, pl, pc, pr):
     )
     saveGraphBtn.place(relx=.6, rely=0)
 
-def openSavedGraphs():
-    savedGraphs.openWindow()
+# GUI for graphs saved in local database
+def savedGraphsGUI():
+    global savedGUI
+    savedGUI = tk.Toplevel()
+    savedGUI.geometry("500x300")
+    savedGUI.title("Saved Graphs")
+    savedGUI.resizable(False,False)
+    savedGraphsList()
+    savedGUI.mainloop()
+
+# Gets all saved graphs and displays them in a list
+def savedGraphsList():
+    global tableList
+    tableLabel, tableList, tableScroll = savedGraphsElements()
+    tables = db.getAllTables()
+    tableList.place(relx=.02,rely=.2)
+    tableLabel.grid(row=0,column=0, pady=35, padx=10)
+    for i in range(len(tables)):
+        table = " " + tables[i] + ".csv"
+        tableList.insert(i, table)
+    for i in range(40):
+        tableList.insert(tk.END, (" " + str(i)))
+    tableList.config(yscrollcommand=tableScroll.set)
+    tableList.bind('<Double-Button-1>', getSelectedGraph)
+    tableScroll.place(relx=.4,rely=.2)
+
+# GUI elements for saved graphs
+def savedGraphsElements():
+    tableLabel = tk.Label(savedGUI, text="Saved Tables:")
+    tableList = tk.Listbox(savedGUI, width=30, height=14, activestyle="none", selectmode="extended")
+    tableScroll = tk.Scrollbar(savedGUI, command= tableList.yview)
+    return tableLabel, tableList, tableScroll
+
+# Gets the graph that is double-clicked from local database and graphs it
+def getSelectedGraph(e):
+    for i in tableList.curselection():
+        plotFromDB(tableList.get(i))
+    savedGUI.destroy()
 
 # GUI elements and their placement
 gui = tk.Tk()
@@ -287,17 +323,17 @@ newGraphBtn = tk.Button(
     text="New Graph", 
     command=lambda: [plt.close(), plot(readCSV(1), "None", "None")]
     )
-testBtn = tk.Button(
+savedGraphsBtn = tk.Button(
     gui, 
     text="Show saved graphs", 
-    command=lambda: openSavedGraphs()
+    command=lambda: savedGraphsGUI()
     )
 updateGraphBtn = tk.Button(
     gui, 
     text="Update Graph",
     command=lambda: [plt.close(), plot(readCSV(0), startTime.get(), stopTime.get())]
 )
-testBtn.place(relx=.2,rely=0)
+savedGraphsBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
 
 if __name__ == "__main__":
