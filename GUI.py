@@ -30,14 +30,14 @@ def plot(graphData, startTime, stopTime):
     graph.legend(loc="upper right")
     graph.set_xlabel("Time [s]")
     graph.set_ylabel("Pressure [mbar]")
-    canvas.mpl_connect('button_press_event', onClick)
+    canvas.mpl_connect('button_press_event', onRightClick)
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
     saveGraph(ts, pl, pc, pr)
     graphOptions()
 
-def onClick(event):
+def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
         menu = tk.Menu(gui, tearoff=0)
         menu.add_command(label="Option 1", command=lambda: test())
