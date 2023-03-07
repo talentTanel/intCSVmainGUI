@@ -40,15 +40,19 @@ def plot(graphData, startTime, stopTime):
 def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
         menu = tk.Menu(gui, tearoff=0)
-        menu.add_command(label="Option 1", command=lambda: test())
+        menu.add_command(label="Option 1", command=lambda: test(event))
         menu.add_command(label="Option 2")
         menu.add_separator()
         menu.add_command(label="Option 3")
         x, y = canvas.get_tk_widget().winfo_pointerxy()
         menu.post(x, y)
 
-def test():
+def test(event):
     print("TEST")
+    print('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+          (event.button, event.x, event.y, event.xdata, event.ydata))
+    graph.plot(event.xdata, event.ydata, 'o')
+    canvas.draw()
 
 # If a start or stop time has been set this function removes everything not in those ranges
 def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
