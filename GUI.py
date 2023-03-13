@@ -258,6 +258,7 @@ def displayInsertionPoint(ts):
             ts = []
             ts.append(50) # placeholder number, need to think of a better way to either replace ts[0] or some other method
         global annIp, ip
+        if annIp: annIp.remove(), ip.remove()
         ipt = graph.plot(insertionPointXY[0],insertionPointXY[1], "or", label="Insertion Point")
         ip = ipt.pop(0)
         annIp = graph.annotate("Insertion Point", xy=(insertionPointXY[0], insertionPointXY[1]), xytext=((ts[0]+insertionPointXY[0])/2.5,insertionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
