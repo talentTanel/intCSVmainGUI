@@ -7,7 +7,7 @@ import os
 import db
 
 fileName=""
-insertionPointXY, maxPointXY, minPointXY = [], [], []
+injectionPointXY, maxPointXY, minPointXY = [], [], []
 annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
 # User Interface
 def GUI():
@@ -23,7 +23,7 @@ def plot(graphData, startTime, stopTime):
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
-    insertionPointDef(pl, ts)
+    injectionPointDef(pl, ts)
     maximumPoint(pl, ts)
     minimumPoint(pl, ts)
     getRange(pl, ts)
@@ -49,9 +49,9 @@ def onRightClick(event):
         menu.post(x, y)
 
 def manualInjectionPoint(event):
-    global insertionPointXY
-    insertionPointXY = [float(event.xdata), float(event.ydata)]
-    displayInsertionPoint(0)
+    global injectionPointXY
+    injectionPointXY = [float(event.xdata), float(event.ydata)]
+    displayInjectionPoint(0)
 
 # If a start or stop time has been set this function removes everything not in those ranges
 def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
@@ -118,7 +118,7 @@ def graphOptions():
     lblScenarioText.place(relx=.57, rely=.72)
     lblFileName.config(text="File Name: {}".format(fileName))
     lblFileName.place(relx=.5,rely=.8)
-    lblInsertionPoint.place(relx=.5,rely=.85)
+    lblInjectionPoint.place(relx=.5,rely=.85)
     lblMaximumPoint.place(relx=.5,rely=.9)
     lblMinimumPoint.place(relx=.5,rely=.95)
 
@@ -128,8 +128,8 @@ def plotFromDB(table):
     tableName = table.rsplit(".",2)[0]
     data, ipX, ipY, maxX, maxY, minX, minY, scenario = db.getTable(tableName)
     if ipX:
-        global insertionPointXY
-        insertionPointXY = [ipX, ipY]
+        global injectionPointXY
+        injectionPointXY = [ipX, ipY]
     if maxX:
         global maxPointXY
         maxPointXY = [maxX, maxY]
@@ -167,8 +167,8 @@ def readCSV(e):
 
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ip, annMax, maximum, annMin, minimum, insertionPointXY, maxPointXY, minPointXY
-        insertionPointXY, maxPointXY, minPointXY = [], [], []
+        global annIp, ip, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY
+        injectionPointXY, maxPointXY, minPointXY = [], [], []
         annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
         lblScenarioText.config(text="")
 
@@ -247,55 +247,55 @@ def getMinimumPoint(pl, ts):
     minPointXY = [minTs, minPl]
     lblMinimumPoint.config(text="Minimum Pressure [mbar]: {}".format(minPl))
 
-# Checks if an insertion point is already available, if there is - displays it
-def insertionPointDef(pl, ts):
-    insertionPointBtn(pl, ts)
-    displayInsertionPoint(ts)
+# Checks if an injection point is already available, if there is - displays it
+def injectionPointDef(pl, ts):
+    injectionPointBtn(pl, ts)
+    displayInjectionPoint(ts)
 
-def displayInsertionPoint(ts):
-    if insertionPointXY: 
+def displayInjectionPoint(ts):
+    if injectionPointXY: 
         if ts == 0:
             ts = []
             ts.append(50) # placeholder number, need to think of a better way to either replace ts[0] or some other method
         global annIp, ip
-        if annIp: annIp.remove(), ip.remove()
-        ipt = graph.plot(insertionPointXY[0],insertionPointXY[1], "or", label="Insertion Point")
+        if annIp: annIp.remove(), ip.remove() # clears previous injection point from graph
+        ipt = graph.plot(injectionPointXY[0],injectionPointXY[1], "or", label="Injection Point")
         ip = ipt.pop(0)
-        annIp = graph.annotate("Insertion Point", xy=(insertionPointXY[0], insertionPointXY[1]), xytext=((ts[0]+insertionPointXY[0])/2.5,insertionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        annIp = graph.annotate("Injection Point", xy=(injectionPointXY[0], injectionPointXY[1]), xytext=((ts[0]+injectionPointXY[0])/2.5,injectionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
-        lblInsertionPoint.config(text="Insertion Point: {} [mbar] {} [second]".format(insertionPointXY[1], insertionPointXY[0]))
+        lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(injectionPointXY[1], injectionPointXY[0]))
 
-# Gets insertion point from database if it exists
-def insertionPointFromDB(tsD, ipX, ipY):
+# Gets injection point from database if it exists
+def injectionPointFromDB(tsD, ipX, ipY):
     if ipX:
         global annIp, ip
-        ipt = graph.plot(ipX, ipY, "or", label="Insertion Point")
+        ipt = graph.plot(ipX, ipY, "or", label="Injection Point")
         ip = ipt.pop(0)
-        annIp = graph.annotate("Insertion Point", xy=(ipX, ipY), xytext=((tsD[0]+ipX)/2.5,ipY-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        annIp = graph.annotate("Injection Point", xy=(ipX, ipY), xytext=((tsD[0]+ipX)/2.5,ipY-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
 
-# Suggests an insertion point automatically by comparing a pressure to it's following pressure
-def getInsertionPointAuto(pl, ts):
+# Suggests an injection point automatically by comparing a pressure to it's following pressure
+def getInjectionPointAuto(pl, ts):
     for i in range(len(pl)-1):
         if abs(pl[i] - pl[i+1]) > int(insertSlider.get()):
-                global insertionPointXY, annIp, ip
+                global injectionPointXY, annIp, ip
                 if annIp: annIp.remove(), ip.remove()
                 tsIn = ts[i]
                 plIn = pl[i]
-                ipt = graph.plot(tsIn,plIn, "or", label="Insertion Point")
+                ipt = graph.plot(tsIn,plIn, "or", label="Injection Point")
                 ip = ipt.pop(0)
-                annIp = graph.annotate("Insertion Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+                annIp = graph.annotate("Injection Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
                 canvas.draw()
-                insertionPointXY = [tsIn, plIn]
-                lblInsertionPoint.config(text="Insertion Point: {} [mbar] {} [second]".format(plIn, tsIn))
+                injectionPointXY = [tsIn, plIn]
+                lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(plIn, tsIn))
                 break
         
-# Suggests an insertion point when a specific button is pressed
-def insertionPointBtn(pl, ts):
+# Suggests an injection point when a specific button is pressed
+def injectionPointBtn(pl, ts):
     insertAutoBtn = tk.Button(
     gui, 
-    text="Suggest new insertion point",
-    command=lambda: getInsertionPointAuto(pl, ts)
+    text="Suggest new injection point",
+    command=lambda: getInjectionPointAuto(pl, ts)
     )
     insertAutoBtn.place(relx=.1,rely=.3)
     insertSlider.place(relx=.11, rely=.35)
@@ -305,7 +305,7 @@ def insertionPointBtn(pl, ts):
 # Resets the values of labels to their default state when loading in a new file
 def resetLabels():
     lblFileName.config(text="File Name: -")
-    lblInsertionPoint.config(text="Insertion Point: -")
+    lblInjectionPoint.config(text="Injection Point: -")
     lblMaximumPoint.config(text="Maximum Pressure [mbar]: -")
     lblMinimumPoint.config(text="Minimum Pressure [mbar]: -")
 
@@ -314,7 +314,7 @@ def saveGraph(ts, pl, pc, pr):
     saveGraphBtn = tk.Button(
     gui, 
     text="Save Graph",
-    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, insertionPointXY, maxPointXY, minPointXY, lblScenarioText.cget("text"))
+    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, injectionPointXY, maxPointXY, minPointXY, lblScenarioText.cget("text"))
     )
     saveGraphBtn.place(relx=.6, rely=0)
 
@@ -385,7 +385,7 @@ toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 lblScenario = tk.Label(gui, text="Scenario:", font=("Arial",14))
 lblScenarioText = tk.Label(gui, text="", font=("Arial",14))
 lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
-lblInsertionPoint = tk.Label(gui, text="Insertion Point: -", font=("Arial",14))
+lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial",14))
 lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
 lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
 txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
