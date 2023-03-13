@@ -40,19 +40,18 @@ def plot(graphData, startTime, stopTime):
 def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
         menu = tk.Menu(gui, tearoff=0)
-        menu.add_command(label="Option 1", command=lambda: test(event))
-        menu.add_command(label="Option 2")
+        menu.add_command(label="Injection Point", command=lambda: manualInjectionPoint(event))
+        menu.add_command(label="Nadir Pressure")
+        menu.add_command(label="Tailwater")
         menu.add_separator()
         menu.add_command(label="Option 3")
-        x, y = canvas.get_tk_widget().winfo_pointerxy()
+        x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
 
-def test(event):
-    print("TEST")
-    print('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-          (event.button, event.x, event.y, event.xdata, event.ydata))
-    graph.plot(event.xdata, event.ydata, 'o')
-    canvas.draw()
+def manualInjectionPoint(event):
+    global insertionPointXY
+    insertionPointXY = [float(event.xdata), float(event.ydata)]
+    displayInsertionPoint(0)
 
 # If a start or stop time has been set this function removes everything not in those ranges
 def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
@@ -251,7 +250,13 @@ def getMinimumPoint(pl, ts):
 # Checks if an insertion point is already available, if there is - displays it
 def insertionPointDef(pl, ts):
     insertionPointBtn(pl, ts)
-    if insertionPointXY:
+    displayInsertionPoint(ts)
+
+def displayInsertionPoint(ts):
+    if insertionPointXY: 
+        if ts == 0:
+            ts = []
+            ts.append(50) # placeholder number, need to think of a better way to either replace ts[0] or some other method
         global annIp, ip
         ipt = graph.plot(insertionPointXY[0],insertionPointXY[1], "or", label="Insertion Point")
         ip = ipt.pop(0)
