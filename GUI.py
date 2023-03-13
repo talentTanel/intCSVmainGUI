@@ -7,8 +7,8 @@ import os
 import db
 
 fileName=""
-injectionPointXY, maxPointXY, minPointXY = [], [], []
-annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
+injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
+annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
 # User Interface
 def GUI():
     gui.geometry("1280x720")
@@ -41,8 +41,8 @@ def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
         menu = tk.Menu(gui, tearoff=0)
         menu.add_command(label="Injection Point", command=lambda: manualInjectionPoint(event))
-        menu.add_command(label="Nadir Pressure")
-        menu.add_command(label="Tailwater")
+        menu.add_command(label="Nadir Pressure", command=lambda: manualNadirPoint(event))
+        menu.add_command(label="Tailwater", command=lambda: manualTailwaterPoint(event))
         menu.add_separator()
         menu.add_command(label="Option 3")
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
@@ -50,8 +50,30 @@ def onRightClick(event):
 
 def manualInjectionPoint(event):
     global injectionPointXY
-    injectionPointXY = [float(event.xdata), float(event.ydata)]
+    injectionPointXY = [round(event.xdata, 2), round(event.ydata, 2)]
     displayInjectionPoint(0)
+
+def manualNadirPoint(event):
+    global nadirXY, annNadir, nadirPlot
+    nadirXY = [round(event.xdata, 2), round(event.ydata, 2)]
+    temp = 50
+    if annNadir: annNadir.remove(), nadirPlot.remove()
+    nadirPointT = graph.plot(nadirXY[0],nadirXY[1], "or", label="Nadir Point")
+    nadirPlot = nadirPointT.pop(0)
+    annNadir = graph.annotate("Nadir Point", xy=(nadirXY[0], nadirXY[1]), xytext=((temp+nadirXY[0])/2.5,nadirXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+    canvas.draw()
+    #lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(injectionPointXY[1], injectionPointXY[0]))
+
+def manualTailwaterPoint(event):
+    global tailwaterXY, annTailwater, tailwaterPlot
+    tailwaterXY = [round(event.xdata, 2), round(event.ydata, 2)]
+    temp = 50
+    if annTailwater: annTailwater.remove(), tailwaterPlot.remove()
+    tailwaterPlotT = graph.plot(tailwaterXY[0],tailwaterXY[1], "or", label="Tailwater")
+    tailwaterPlot = tailwaterPlotT.pop(0)
+    annTailwater = graph.annotate("Tailwater", xy=(tailwaterXY[0], tailwaterXY[1]), xytext=((temp+tailwaterXY[0])/2.5,tailwaterXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+    canvas.draw()
+    #lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(injectionPointXY[1], injectionPointXY[0]))
 
 # If a start or stop time has been set this function removes everything not in those ranges
 def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
@@ -167,9 +189,9 @@ def readCSV(e):
 
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ip, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY
+        global annIp, ipPlot, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY
         injectionPointXY, maxPointXY, minPointXY = [], [], []
-        annIp, ip, annMax, maximum, annMin, minimum = None, None, None, None, None, None
+        annIp, ipPlot, annMax, maximum, annMin, minimum = None, None, None, None, None, None
         lblScenarioText.config(text="")
 
 # Makes two lists the same length for graphing
@@ -257,10 +279,10 @@ def displayInjectionPoint(ts):
         if ts == 0:
             ts = []
             ts.append(50) # placeholder number, need to think of a better way to either replace ts[0] or some other method
-        global annIp, ip
-        if annIp: annIp.remove(), ip.remove() # clears previous injection point from graph
+        global annIp, ipPlot
+        if annIp: annIp.remove(), ipPlot.remove() # clears previous injection point from graph
         ipt = graph.plot(injectionPointXY[0],injectionPointXY[1], "or", label="Injection Point")
-        ip = ipt.pop(0)
+        ipPlot = ipt.pop(0)
         annIp = graph.annotate("Injection Point", xy=(injectionPointXY[0], injectionPointXY[1]), xytext=((ts[0]+injectionPointXY[0])/2.5,injectionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
         lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(injectionPointXY[1], injectionPointXY[0]))
@@ -268,9 +290,9 @@ def displayInjectionPoint(ts):
 # Gets injection point from database if it exists
 def injectionPointFromDB(tsD, ipX, ipY):
     if ipX:
-        global annIp, ip
+        global annIp, ipPlot
         ipt = graph.plot(ipX, ipY, "or", label="Injection Point")
-        ip = ipt.pop(0)
+        ipPlot = ipt.pop(0)
         annIp = graph.annotate("Injection Point", xy=(ipX, ipY), xytext=((tsD[0]+ipX)/2.5,ipY-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
 
@@ -278,12 +300,12 @@ def injectionPointFromDB(tsD, ipX, ipY):
 def getInjectionPointAuto(pl, ts):
     for i in range(len(pl)-1):
         if abs(pl[i] - pl[i+1]) > int(insertSlider.get()):
-                global injectionPointXY, annIp, ip
-                if annIp: annIp.remove(), ip.remove()
+                global injectionPointXY, annIp, ipPlot
+                if annIp: annIp.remove(), ipPlot.remove()
                 tsIn = ts[i]
                 plIn = pl[i]
                 ipt = graph.plot(tsIn,plIn, "or", label="Injection Point")
-                ip = ipt.pop(0)
+                ipPlot = ipt.pop(0)
                 annIp = graph.annotate("Injection Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
                 canvas.draw()
                 injectionPointXY = [tsIn, plIn]
