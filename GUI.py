@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.widgets import CheckButtons
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import csv
 import tkinter as tk
@@ -19,13 +20,14 @@ def GUI():
 # Graphs a .CSV file
 def plot(graphData, startTime, stopTime):
     graph.clear()
+    global plots
     ts, pl, pc, pr, mag = [], [], [], [], []
     ts, pl, pc, pr, mag = appendElements(ts, pl, pc, pr, mag, graphData)
-    ts, pl, pc, pr = startStopTimes(ts, pl, pc, pr, startTime, stopTime)
-    graph.plot(ts, pl, "-r", label="Left") 
-    graph.plot(ts, pc, "-b", label="Center")
-    graph.plot(ts, pr, "-k", label="Right")
-    graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
+    ts, pl, pc, pr, mag = startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime)
+    lPlot, = graph.plot(ts, pl, "-r", label="Left") 
+    cPlot, = graph.plot(ts, pc, "-b", label="Center")
+    rPlot, = graph.plot(ts, pr, "-k", label="Right")
+    mPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
     injectionPointDef(pl, ts)
     maximumPoint(pl, ts)
     minimumPoint(pl, ts)
@@ -39,7 +41,20 @@ def plot(graphData, startTime, stopTime):
     toolbar.place(relx=.7, rely=0)
     displayManualPoints(ts)
     saveGraph(ts, pl, pc, pr)
+    #exportToCSV()
     graphOptions()
+    plots = lPlot, cPlot, rPlot, mPlot
+
+def GetVisibility(label):
+    if label == "Hide left":
+        plots[0].set_visible(not plots[0].get_visible())
+    if label == "Hide center":
+        plots[1].set_visible(not plots[1].get_visible())
+    if label == "Hide right":
+        plots[2].set_visible(not plots[2].get_visible())
+    if label == "Hide acc XYZ":
+        plots[3].set_visible(not plots[3].get_visible())
+    canvas.draw()
 
 def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
@@ -48,10 +63,11 @@ def onRightClick(event):
         menu.add_command(label="Nadir Pressure", command=lambda: manualNadirPoint(event))
         menu.add_command(label="Tailwater", command=lambda: manualTailwaterPoint(event))
         menu.add_separator()
-        menu.add_command(label="Option 3")
+        menu.add_command(label="Cancel")
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
 
+# Sets the XY values for the injection point and graphs it
 def manualInjectionPoint(event):
     global injectionPointXY
     injectionPointXY = [round(event.xdata, 2), round(event.ydata, 2)]
@@ -81,6 +97,7 @@ def manualTailwaterPoint(event):
     canvas.draw()
     lblTailwater.config(text="Tailwater [s]: {}".format(tailwaterXY[0]))
 
+# If these points exist on updating the graph, then it displays them
 def displayManualPoints(ts):
     global nadirXY, annNadir, nadirPlot, tailwaterXY, annTailwater, tailwaterPlot
     if ts == 0: ts[0] = 50
@@ -101,14 +118,14 @@ def displayManualPoints(ts):
 
 
 # If a start or stop time has been set this function removes everything not in those ranges
-def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
+def startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime):
     if(isFloat(startTime) == True):
         ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
-        pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
+        pl, pc, pr, mag = sameLength(ts,pl,pc,pr,mag,"0") # Removing all values from pressure before startTime
     if(isFloat(stopTime) == True):
         ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
-        pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
-    return ts, pl, pc, pr
+        pl, pc, pr, mag = sameLength(ts,pl,pc,pr,mag,"end") # Removing all values from pressure after stopTime
+    return ts, pl, pc, pr, mag
 
 # Automatically finds the region of interest in graph from maximum pressure point
 def findRange(pl ,ts):
@@ -179,6 +196,8 @@ def graphOptions():
     lblMinimumPoint.place(relx=.45,rely=.95)
     lblNadirPoint.place(relx=.8,rely=.8)
     lblTailwater.place(relx=.8,rely=.85)
+    rax.set_visible(True)
+    canvas.draw()
 
 # Gets graph from database data
 def plotFromDB(table):
@@ -247,17 +266,19 @@ def resetOnNewFile(e):
         lblScenarioText.config(text="")
 
 # Makes two lists the same length for graphing
-def sameLength(X, pl, pc, pr, type):
+def sameLength(X, pl, pc, pr, mag, type):
     while len(X) != len(pl):
         if(type == "end"):
             pl.pop()
             pc.pop()
             pr.pop()
+            mag.pop()
         else:
             pl.pop(0)
             pc.pop(0)
             pr.pop(0)
-    return pl, pc, pr
+            mag.pop(0)
+    return pl, pc, pr, mag
     
 # Checks if an maximum point is already available, if there is - displays it
 def maximumPoint(pl, ts):
@@ -500,6 +521,10 @@ saveScenarioBtn = tk.Button(
     font=("Arial bold",12),
     command=lambda: editScenario(1)
 )
+rax = plt.axes([0.79, 0.12, 0.2, 0.2])
+rax.set_visible(False)
+check = CheckButtons(rax, ("Hide left", "Hide center", "Hide right", "Hide acc XYZ"), (False, False, False, False))
+check.on_clicked(GetVisibility)
 savedGraphsBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
 

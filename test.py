@@ -1,34 +1,38 @@
-import tkinter as tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+from matplotlib.widgets import CheckButtons
 
-# create the tkinter window and a matplotlib figure
-root = tk.Tk()
-fig = Figure(figsize=(5, 4), dpi=100)
-ax = fig.add_subplot(111)
+def plot():
+    global plots
+    t = [0, 1, 2, 3, 4]
+    s1 = [0, 1, 0, 1, 0]
+    s2 = [1, 0, 1, 0, 1]
+    s3 = [0, 0, 1, 1, 0]
 
-# plot some data on the figure
-ax.plot([1, 2, 3], [4, 5, 6])
+    lPlot, = graph.plot(t, s1, "-r", label="Left") 
+    cPlot, = graph.plot(t, s2, "-b", label="Center")
+    rPlot, = graph.plot(t, s3, "-k", label="Right")
+    plots = lPlot, cPlot, rPlot
+	
+fig, graph = plt.subplots()
+plot()
 
-# create a canvas widget to display the matplotlib figure
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.draw()
-canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+rax = plt.axes([0.05, 0.4, 0.1, 0.15], facecolor='gray', visible=False)
+check = CheckButtons(rax, ('Hide left', 'Hide center', 'Hide right'), (True, True, True))
 
-# define a function to handle the right-click event
-def on_right_click(event):
-    # check if the right-click was over the matplotlib graph and the button was right
-    if event.inaxes is not None and event.button == 3:
-        # create a right-click menu
-        menu = tk.Menu(root, tearoff=0)
-        menu.add_command(label="Option 1")
-        menu.add_command(label="Option 2")
-        menu.add_command(label="Option 3")
-        # display the menu at the location of the right-click event
-        menu.post(event.x_root, event.y_root)
+def show_rax():
+    rax.set_visible(True)
+    plt.draw()
 
-# bind the function to the "button_press_event" event of the canvas
-cid = canvas.mpl_connect('button_press_event', on_right_click)
+def func(label):
+    if label == 'Hide left':
+        plots[0].set_visible(not plots[0].get_visible())
+    elif label == 'Hide center':
+        plots[1].set_visible(not plots[1].get_visible())
+    elif label == 'Hide right':
+        plots[2].set_visible(not plots[2].get_visible())
+    plt.draw()
 
-# start the tkinter event loop
-tk.mainloop()
+check.on_clicked(func)
+
+show_rax()
+plt.show()
