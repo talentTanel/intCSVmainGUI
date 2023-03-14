@@ -45,17 +45,19 @@ def plot(graphData, startTime, stopTime):
     graphOptions()
     plots = lPlot, cPlot, rPlot, mPlot
 
+# Gets the visibility of a plot and reverses it when corresponding button is pressed
 def GetVisibility(label):
     if label == "Hide left":
         plots[0].set_visible(not plots[0].get_visible())
-    if label == "Hide center":
+    elif label == "Hide center":
         plots[1].set_visible(not plots[1].get_visible())
-    if label == "Hide right":
+    elif label == "Hide right":
         plots[2].set_visible(not plots[2].get_visible())
-    if label == "Hide acc XYZ":
+    elif label == "Hide acc XYZ":
         plots[3].set_visible(not plots[3].get_visible())
     canvas.draw()
 
+# Exports points of interest and filename to a .CSV file
 def exportToCSV():
     data = []
     data.append(fileName)
@@ -75,6 +77,7 @@ def exportToCSV():
         except Exception as e:
             print(e)
 
+# Sets the options and commands for each item in the right-click menu on the plot
 def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
         menu = tk.Menu(gui, tearoff=0)
@@ -264,6 +267,7 @@ def readCSV(e):
     resetOnNewFile(e)
     return data
 
+# Gets the sample rate of each opened file, needed to know header element locations
 def getSampleRate(headers):
     #print(headers)
     fileHeaders = []
@@ -278,6 +282,7 @@ def getSampleRate(headers):
     else:
         return 0
 
+# When a new file is opened all previously set values for points of interests are reset
 def resetOnNewFile(e):
     if e != 0:
         global annIp, ipPlot, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY, annNadir, nadirPlot, annTailwater, tailwaterPlot
