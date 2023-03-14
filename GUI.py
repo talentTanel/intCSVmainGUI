@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import csv
+import numpy as np
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -41,7 +42,6 @@ def plot(graphData, startTime, stopTime):
     toolbar.place(relx=.7, rely=0)
     displayManualPoints(ts)
     saveGraph(ts, pl, pc, pr)
-    #exportToCSV()
     graphOptions()
     plots = lPlot, cPlot, rPlot, mPlot
 
@@ -55,6 +55,25 @@ def GetVisibility(label):
     if label == "Hide acc XYZ":
         plots[3].set_visible(not plots[3].get_visible())
     canvas.draw()
+
+def exportToCSV():
+    data = []
+    data.append(fileName)
+    try:
+        data.append(injectionPointXY[0])
+        data.append(nadirXY[0])
+        data.append(tailwaterXY[0])
+    except:
+        data = None
+        tk.messagebox.showerror("Error", "Please set all points before exporting")
+    if data != None:
+        try:
+            with open("export_"+fileName, 'w', newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["File Name, INJECTION, NADIR, TAILWATER"])
+                writer.writerow(data)
+        except Exception as e:
+            print(e)
 
 def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
@@ -196,6 +215,7 @@ def graphOptions():
     lblMinimumPoint.place(relx=.45,rely=.95)
     lblNadirPoint.place(relx=.8,rely=.8)
     lblTailwater.place(relx=.8,rely=.85)
+    saveAsCSVbtn.place(relx=.52,rely=0)
     rax.set_visible(True)
     canvas.draw()
 
@@ -520,6 +540,11 @@ saveScenarioBtn = tk.Button(
     text="SAVE SCENARIO",
     font=("Arial bold",12),
     command=lambda: editScenario(1)
+)
+saveAsCSVbtn = tk.Button(
+    gui,
+    text="Save As CSV",
+    command=lambda: exportToCSV()
 )
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)

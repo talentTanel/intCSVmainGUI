@@ -1,3 +1,4 @@
 msvc-runtime
 matplotlib
+numpy
 tkinter
