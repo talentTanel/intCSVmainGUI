@@ -5,8 +5,10 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 import db
+from math import sqrt
 
 fileName=""
+sampleRate = None
 injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
 annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
 # User Interface
@@ -17,12 +19,13 @@ def GUI():
 # Graphs a .CSV file
 def plot(graphData, startTime, stopTime):
     graph.clear()
-    ts, pl, pc, pr = [], [], [], []
-    ts, pl, pc, pr = appendElements(ts, pl, pc, pr, graphData)
+    ts, pl, pc, pr, mag = [], [], [], [], []
+    ts, pl, pc, pr, mag = appendElements(ts, pl, pc, pr, mag, graphData)
     ts, pl, pc, pr = startStopTimes(ts, pl, pc, pr, startTime, stopTime)
     graph.plot(ts, pl, "-r", label="Left") 
     graph.plot(ts, pc, "-b", label="Center")
     graph.plot(ts, pr, "-k", label="Right")
+    graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
     injectionPointDef(pl, ts)
     maximumPoint(pl, ts)
     minimumPoint(pl, ts)
@@ -136,19 +139,28 @@ def isFloat(num):
         return False
 
 # Reads the data from .CSV or database and inserts into each corresponding variable
-def appendElements(ts, pl, pc, pr, graphData):
-    if len(graphData) != 4: # When gotten from db the size is 4
+def appendElements(ts, pl, pc, pr, mag, graphData):
+    tempP = 0
+    if len(graphData) != 4: # When gotten from db the size is smaller
         for i in range(len(graphData)):
             ts.append(float(graphData[i][0]))
             pl.append(float(graphData[i][1]))
             pc.append(float(graphData[i][3]))
             pr.append(float(graphData[i][5]))
+            if i == 0:
+                tempP = pl[0]
+            if sampleRate == 100:
+                mag.append(tempP-10+sqrt(pow(float(graphData[i][17]),2) + pow(float(graphData[i][18]),2) + pow(float(graphData[i][19]),2)))
+            elif sampleRate == 250:
+                mag.append(tempP-10+sqrt(pow(float(graphData[i][7]),2) + pow(float(graphData[i][8]),2) + pow(float(graphData[i][9]),2)))
+            else:
+                mag.append(0)
     else:
         ts = graphData[0]
         pl = graphData[1]
         pc = graphData[2]
         pr = graphData[3]
-    return ts, pl, pc, pr
+    return ts, pl, pc, pr, mag
 
 # Places multiple GUI elements when a graph is plotted for the first time
 def graphOptions():
@@ -205,11 +217,27 @@ def readCSV(e):
         fileName = os.path.basename(filedialog.askopenfilename())
     file = open(fileName,"r")
     data = list(csv.reader(file, delimiter=","))
+    global sampleRate
+    sampleRate = getSampleRate(data[0])
     file.close()
     data.pop(0) # data[0] is .CSV headers
     resetLabels()
     resetOnNewFile(e)
     return data
+
+def getSampleRate(headers):
+    #print(headers)
+    fileHeaders = []
+    # 250 Hz headers
+    fileHeaders.append(['Time [s]', 'PL [hPa]', 'TL [C]', 'PC [hPa]', 'TC [C]', 'PR [hPa]', 'TR [C]', 'AX [m/s2]', 'AY [m/s2]', 'AZ [m/s2]', 'RX [rad/s]', 'RY [rad/s]', 'RZ [rad/s]', 'CSM', 'CSA', 'CSR', 'CSTOT'])
+    # 100 Hz headers
+    fileHeaders.append(['Time [s]', 'PL [mbar]', 'TL [C]', 'PC [mbar]', 'TC [C]', 'PR [mbar]', 'TR [C]', 'EX [deg]', 'EY [deg]', 'EZ [deg]', 'QW [-]', 'QX [-]', 'QY [-]', 'QZ [-]', 'MX [microT]', 'MY [microT]', 'MZ [microT]', 'AX [m/s2]', 'AY [m/s2]', 'AZ [m/s2]', 'RX [rad/s]', 'RY [rad/s]', 'RZ [rad/s]', 'CSM', 'CSA', 'CSR', 'CSTOT'])
+    if headers == fileHeaders[0]:
+        return 250
+    elif headers == fileHeaders[1]:
+        return 100
+    else:
+        return 0
 
 def resetOnNewFile(e):
     if e != 0:

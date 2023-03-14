@@ -1,0 +1,2 @@
+IMPORTANT database not working anymore with acceleration, need to also have it inserted into database
+Pressing open new file and then not choosing anything clears all previous values, throws errors
