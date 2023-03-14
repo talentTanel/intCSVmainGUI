@@ -34,6 +34,7 @@ def plot(graphData, startTime, stopTime):
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
+    displayManualPoints(ts)
     saveGraph(ts, pl, pc, pr)
     graphOptions()
 
@@ -53,6 +54,7 @@ def manualInjectionPoint(event):
     injectionPointXY = [round(event.xdata, 2), round(event.ydata, 2)]
     displayInjectionPoint(0)
 
+# Sets the XY values for the nadir point and graphs it
 def manualNadirPoint(event):
     global nadirXY, annNadir, nadirPlot
     nadirXY = [round(event.xdata, 2), round(event.ydata, 2)]
@@ -62,8 +64,9 @@ def manualNadirPoint(event):
     nadirPlot = nadirPointT.pop(0)
     annNadir = graph.annotate("Nadir Point", xy=(nadirXY[0], nadirXY[1]), xytext=((temp+nadirXY[0])/2.5,nadirXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
-    #lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(injectionPointXY[1], injectionPointXY[0]))
+    lblNadirPoint.config(text="Nadir Point [s]: {}".format(nadirXY[0]))
 
+# Sets the XY values for the tailwater point and graphs it
 def manualTailwaterPoint(event):
     global tailwaterXY, annTailwater, tailwaterPlot
     tailwaterXY = [round(event.xdata, 2), round(event.ydata, 2)]
@@ -73,7 +76,26 @@ def manualTailwaterPoint(event):
     tailwaterPlot = tailwaterPlotT.pop(0)
     annTailwater = graph.annotate("Tailwater", xy=(tailwaterXY[0], tailwaterXY[1]), xytext=((temp+tailwaterXY[0])/2.5,tailwaterXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
-    #lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(injectionPointXY[1], injectionPointXY[0]))
+    lblTailwater.config(text="Tailwater [s]: {}".format(tailwaterXY[0]))
+
+def displayManualPoints(ts):
+    global nadirXY, annNadir, nadirPlot, tailwaterXY, annTailwater, tailwaterPlot
+    if ts == 0: ts[0] = 50
+    if annNadir: # Nadir Point
+        annNadir.remove(), nadirPlot.remove()
+        nadirPointT = graph.plot(nadirXY[0],nadirXY[1], "or", label="Nadir Point")
+        nadirPlot = nadirPointT.pop(0)
+        annNadir = graph.annotate("Nadir Point", xy=(nadirXY[0], nadirXY[1]), xytext=((ts[0]+nadirXY[0])/2.5,nadirXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        canvas.draw()
+        lblNadirPoint.config(text="Nadir Point [s]: {}".format(nadirXY[0]))
+    if annTailwater: # Tailwater Point
+        annTailwater.remove(), tailwaterPlot.remove()
+        tailwaterPlotT = graph.plot(tailwaterXY[0],tailwaterXY[1], "or", label="Tailwater")
+        tailwaterPlot = tailwaterPlotT.pop(0)
+        annTailwater = graph.annotate("Tailwater", xy=(tailwaterXY[0], tailwaterXY[1]), xytext=((ts[0]+tailwaterXY[0])/2.5,tailwaterXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        canvas.draw()
+        lblTailwater.config(text="Tailwater [s]: {}".format(tailwaterXY[0]))
+
 
 # If a start or stop time has been set this function removes everything not in those ranges
 def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
@@ -136,13 +158,15 @@ def graphOptions():
     txtStopTime.place(relx= .1, rely= .2)
     lblStopTime.place(relx= .05, rely= .2)
     updateGraphBtn.place(relx=.21,rely=.09)
-    lblScenario.place(relx=.5, rely=.72)
-    lblScenarioText.place(relx=.57, rely=.72)
+    lblScenario.place(relx=.45, rely=.72)
+    lblScenarioText.place(relx=.52, rely=.72)
     lblFileName.config(text="File Name: {}".format(fileName))
-    lblFileName.place(relx=.5,rely=.8)
-    lblInjectionPoint.place(relx=.5,rely=.85)
-    lblMaximumPoint.place(relx=.5,rely=.9)
-    lblMinimumPoint.place(relx=.5,rely=.95)
+    lblFileName.place(relx=.45,rely=.8)
+    lblInjectionPoint.place(relx=.45,rely=.85)
+    lblMaximumPoint.place(relx=.45,rely=.9)
+    lblMinimumPoint.place(relx=.45,rely=.95)
+    lblNadirPoint.place(relx=.8,rely=.8)
+    lblTailwater.place(relx=.8,rely=.85)
 
 # Gets graph from database data
 def plotFromDB(table):
@@ -189,9 +213,9 @@ def readCSV(e):
 
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ipPlot, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY
-        injectionPointXY, maxPointXY, minPointXY = [], [], []
-        annIp, ipPlot, annMax, maximum, annMin, minimum = None, None, None, None, None, None
+        global annIp, ipPlot, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY, annNadir, nadirPlot, annTailwater, tailwaterPlot
+        injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
+        annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
         lblScenarioText.config(text="")
 
 # Makes two lists the same length for graphing
@@ -309,7 +333,7 @@ def getInjectionPointAuto(pl, ts):
                 annIp = graph.annotate("Injection Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
                 canvas.draw()
                 injectionPointXY = [tsIn, plIn]
-                lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(plIn, tsIn))
+                lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [s]".format(plIn, tsIn))
                 break
         
 # Suggests an injection point when a specific button is pressed
@@ -330,6 +354,8 @@ def resetLabels():
     lblInjectionPoint.config(text="Injection Point: -")
     lblMaximumPoint.config(text="Maximum Pressure [mbar]: -")
     lblMinimumPoint.config(text="Minimum Pressure [mbar]: -")
+    lblNadirPoint.config(text="Nadir Point [s]: -")
+    lblTailwater.config(text="Tailwater [s]: -")
 
 # Saves graph and points of interest on it to database
 def saveGraph(ts, pl, pc, pr):
@@ -410,6 +436,8 @@ lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
 lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial",14))
 lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
 lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
+lblNadirPoint = tk.Label(gui, text="Nadir Point [s]: -", font=("Arial",14))
+lblTailwater = tk.Label(gui, text="Tailwater [s]: -", font=("Arial",14))
 txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
 txtStartTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
