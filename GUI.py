@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import csv
-import numpy as np
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -11,6 +10,7 @@ from math import sqrt
 
 fileName=""
 sampleRate = None
+customPointXY, customPlot = [], []
 injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
 annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
 # User Interface
@@ -85,9 +85,46 @@ def onRightClick(event):
         menu.add_command(label="Nadir Pressure", command=lambda: manualNadirPoint(event))
         menu.add_command(label="Tailwater", command=lambda: manualTailwaterPoint(event))
         menu.add_separator()
-        menu.add_command(label="Cancel")
+        menu.add_command(label="Cancel", command=lambda: setCustomPoint(event, 1))
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
+
+# For creating and displaying custom points
+def setCustomPoint(event, id):
+    global customPointXY
+    ids = getAllIds()
+    if (id not in ids):
+        customPointXY.append([round(event.xdata, 2), round(event.ydata, 2), id])
+        index = len(customPointXY)-1
+    else:
+        for i in range(len(customPointXY)):
+            if(customPointXY[i][2] == id):
+                index = i
+                customPointXY[i] == [round(event.xdata, 2), round(event.ydata, 2), id]
+    createCustomPlot(id, index)
+
+# All custom points have a numeric identifier, this searches for all the ones that are in use
+def getAllIds():
+    ids = []
+    for i in range(len(customPointXY)):
+        ids.append(customPointXY[i][2])
+    return ids
+
+def createCustomPlot(id, index):
+    global customPlot
+    ids = getAllIds()
+    if (id in ids and customPlot == []):
+        customPlot.append([None, None, id])
+    elif(id in ids and customPlot != []):
+        customPlot.append([None, None, id])
+    else:
+        customPlot[index] == [None, None, id]
+    if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
+    customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
+    customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+    canvas.draw()
+
+                
 
 # Sets the XY values for the injection point and graphs it
 def manualInjectionPoint(event):
