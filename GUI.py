@@ -7,6 +7,7 @@ from tkinter import filedialog
 import os
 import db
 from math import sqrt
+from functools import partial
 
 fileName=""
 sampleRate = None
@@ -47,13 +48,13 @@ def plot(graphData, startTime, stopTime):
 
 # Gets the visibility of a plot and reverses it when corresponding button is pressed
 def GetVisibility(label):
-    if label == "Hide left":
+    if label == "Hide P left":
         plots[0].set_visible(not plots[0].get_visible())
-    elif label == "Hide center":
+    elif label == "Hide P center":
         plots[1].set_visible(not plots[1].get_visible())
-    elif label == "Hide right":
+    elif label == "Hide P right":
         plots[2].set_visible(not plots[2].get_visible())
-    elif label == "Hide acc XYZ":
+    elif label == "Hide Acc Mag":
         plots[3].set_visible(not plots[3].get_visible())
     canvas.draw()
 
@@ -84,6 +85,9 @@ def onRightClick(event):
         menu.add_command(label="Injection Point", command=lambda: manualInjectionPoint(event))
         menu.add_command(label="Nadir Pressure", command=lambda: manualNadirPoint(event))
         menu.add_command(label="Tailwater", command=lambda: manualTailwaterPoint(event))
+        for i in range(4):
+            partialCustom = partial(setCustomPoint, event, i)
+            menu.add_command(label=i, command= partialCustom)
         menu.add_separator()
         menu.add_command(label="Cancel", command=lambda: setCustomPoint(event, 1))
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
@@ -100,7 +104,7 @@ def setCustomPoint(event, id):
         for i in range(len(customPointXY)):
             if(customPointXY[i][2] == id):
                 index = i
-                customPointXY[i] == [round(event.xdata, 2), round(event.ydata, 2), id]
+                customPointXY[i] = [round(event.xdata, 2), round(event.ydata, 2), id]
     createCustomPlot(id, index)
 
 # All custom points have a numeric identifier, this searches for all the ones that are in use
@@ -110,18 +114,19 @@ def getAllIds():
         ids.append(customPointXY[i][2])
     return ids
 
+# Creates the plot and annotation on the visible graph for a custom point
 def createCustomPlot(id, index):
     global customPlot
     ids = getAllIds()
     if (id in ids and customPlot == []):
         customPlot.append([None, None, id])
-    elif(id in ids and customPlot != []):
+    elif(id in ids and len(customPlot) <= index):
         customPlot.append([None, None, id])
     else:
-        customPlot[index] == [None, None, id]
-    if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
+        if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
+        customPlot[index] = [None, None, id]
     customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
-    customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+    customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=((50+customPointXY[index][0]/2.5, customPointXY[index][1]-250)), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
 
                 
@@ -590,7 +595,7 @@ saveAsCSVbtn = tk.Button(
 )
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
-check = CheckButtons(rax, ("Hide left", "Hide center", "Hide right", "Hide acc XYZ"), (False, False, False, False))
+check = CheckButtons(rax, ("Hide P left", "Hide P center", "Hide P right", "Hide Acc Mag"), (False, False, False, False))
 check.on_clicked(GetVisibility)
 savedGraphsBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
