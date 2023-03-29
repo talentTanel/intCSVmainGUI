@@ -60,12 +60,16 @@ def GetVisibility(label):
 
 # Exports points of interest and filename to a .CSV file
 def exportToCSV():
+    listChildren = customPointList.get_children()
+    header = ["File Name,", "INJECTION"]
     data = []
     data.append(fileName)
     try:
         data.append(injectionPointXY[0])
-        """ data.append(nadirXY[0])
-        data.append(tailwaterXY[0]) """
+        for child in listChildren:
+            temp = customPointList.item(child)
+            data.append(temp["values"][2])
+            header.extend([temp["values"][1]])
     except:
         data = None
         tk.messagebox.showerror("Error", "Please set all points before exporting")
@@ -73,7 +77,7 @@ def exportToCSV():
         try:
             with open("export_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["File Name, INJECTION, NADIR, TAILWATER"])
+                writer.writerow(header)
                 writer.writerow(data)
         except Exception as e:
             print(e)
@@ -90,7 +94,8 @@ def onRightClick(event):
             temp = customPointList.item(child)
             tempValues = temp["values"]
             partialCustom = partial(setCustomPoint, event, tempValues[0])
-            menu.add_command(label=tempValues[0], command= partialCustom)
+            useLabel = "{} - {}".format(tempValues[0],tempValues[1])
+            menu.add_command(label=useLabel, command= partialCustom)
         menu.add_separator()
         menu.add_command(label="Cancel", command=lambda: setCustomPoint(event, 1))
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
@@ -120,6 +125,13 @@ def createCustomPlot(id, index):
     customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
     customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=((50+customPointXY[index][0]/2.5, customPointXY[index][1]-250)), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
+    listChildren = customPointList.get_children()
+    for child in listChildren:
+        temp = customPointList.item(child)
+        if temp["values"][0] == id:
+            tempValues = temp["values"]
+            customPointList.item(child, values=(tempValues[0], tempValues[1], customPointXY[index][0]))
+            break
 
 # Window for creating new custom points
 def createCustomPoint():
@@ -178,7 +190,24 @@ def listNewPoint(id, name, labels):
                 break
             elif (count == len(listChildren)):
                 customPointList.insert("", "end", text=id, values=(id, name, "-"))
+    sortCustomList()
     saveCustomPoint(id)
+
+# Sorts the items in the treeview list by ID
+def sortCustomList():
+    listChildren = customPointList.get_children()
+    for j in range(len(listChildren)):
+        count = 0
+        for child in listChildren:
+            temp = customPointList.item(child)
+            tempValues = temp["values"]
+            if (count > 0):
+                if (oldValue[0] > tempValues[0]):
+                    customPointList.item(child, values=oldValue)
+                    customPointList.item(oldChild, values=tempValues)
+            oldValue = tempValues
+            oldChild = child
+            count = count + 1
 
 # Saves the new custom point values to two arrays and if needed it swaps values
 def saveCustomPoint(id):
