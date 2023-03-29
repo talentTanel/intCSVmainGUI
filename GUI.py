@@ -189,11 +189,13 @@ def listNewPoint(id, name, labels):
             if customPointList.item(child)["values"][0] == id:
                 temp = customPointList.item(child)
                 tempValues = temp["values"]
-                customPointList.insert("", "end", text=id, values=tempValues)
-                customPointList.item(child, values=(len(customPointXY)+1, name, "-"))
+                customPointList.insert("", "end", text=id, values=(tempValues[0],name, "-"))
+                customPointList.item(child, values=(len(customPointXY)+1, tempValues[1], tempValues[2]))
+                sortCustomList()
                 break
             elif (count == len(listChildren)):
                 customPointList.insert("", "end", text=id, values=(id, name, "-"))
+                sortCustomList()
         saveCustomPoint(id)
 
 # Sorts the items in the treeview list by ID
@@ -352,7 +354,6 @@ def graphOptions():
     lblCustomPoints.place(relx=.85, rely=.72)
     customPointList.place(relx=.85, rely=.76)
     createPointBtn.place(relx=.85, rely=.955)
-    sortBtn.place(relx=.95, rely=.955)
     lblMinimumPoint.place(relx=.45,rely=.95)
     """ lblNadirPoint.place(relx=.8,rely=.8)
     lblTailwater.place(relx=.8,rely=.85) """
@@ -695,12 +696,6 @@ createPointBtn = tk.Button(
     text="Create New",
     font=("Arial",12),
     command=lambda: createCustomPoint()
-)
-sortBtn = tk.Button(
-    gui,
-    text="Sort",
-    font=("Arial",12),
-    command=lambda: sortCustomList()
 )
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
