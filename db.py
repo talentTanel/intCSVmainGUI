@@ -53,7 +53,7 @@ def getTable(tableName):
 def getAllTables():
     tables = []
     cur = conn.cursor()
-    result = cur.execute("SELECT * FROM sqlite_schema WHERE type='table'")
+    result = cur.execute("SELECT * FROM sqlite_master WHERE type='table'")
     for table in result.fetchall():
         tables.append(table[1])
     return tables

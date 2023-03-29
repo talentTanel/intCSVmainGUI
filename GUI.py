@@ -3,7 +3,7 @@ from matplotlib.widgets import CheckButtons
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import csv
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import os
 import db
 from math import sqrt
@@ -16,7 +16,7 @@ injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [],
 annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
 # User Interface
 def GUI():
-    gui.geometry("1280x720")
+    gui.geometry("1280x750")
     gui.mainloop()
 
 # Graphs a .CSV file
@@ -93,7 +93,7 @@ def onRightClick(event):
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
 
-# Displaying custom points
+# For displaying custom points
 def setCustomPoint(event, id):
     global customPointXY
     ids = getAllIds()
@@ -150,27 +150,62 @@ def createCustomPoint():
     lblCreated = tk.Label(crtPoint, text="Point created", fg="green", font=12)
     labels = [lblError, lblCreated]
 
-    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: displayNewPoint(txtId.get(), txtName.get(), labels))
+    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listNewPoint(txtId.get(), txtName.get(), labels))
     addBtn.grid(row=2, column=1, pady=25)
 
     
 
 # Checks if the inputted key is a number or not
 def checkIfNum(entry):
-    if str.isdigit(entry):
+    if str.isdigit(entry) or entry == "":
         return True
     else:
         return False
     
-def displayNewPoint(id, name, labels):
-    if (name == ""): labels[0].place(relx=.35,rely=.8)
+# Checks if everything is correct in the custom point creation inputs and gives feedback, also updates values in list
+def listNewPoint(id, name, labels):
+    if (name == ""): 
+        labels[0].place(relx=.35,rely=.8)
+        labels[1].place_forget()
     else: 
         labels[0].place_forget()
         labels[1].place(relx=.35,rely=.8)
         if (id == ""): id = len(customPointXY)
         else: id = int(id)
+        listChildren = customPointList.get_children()
+        count = 0
+        if len(listChildren) == 0:
+            customPointList.insert("", "end", text=id, values=(id, name, "-"))
+        for child in listChildren:
+            count = count + 1
+            if customPointList.item(child)["values"][0] == id:
+                temp = customPointList.item(child)
+                tempValues = temp["values"]
+                customPointList.insert("", "end", text=id, values=tempValues)
+                customPointList.item(child, values=(len(customPointXY)+1, name, "-"))
+                break
+            elif (count == len(listChildren)):
+                print("last", count)
+                customPointList.insert("", "end", text=id, values=(id, name, "-"))
+    saveCustomPoint(id)
 
-    print(id, name)
+# Saves the new custom point values to two arrays and if needed it swaps values
+def saveCustomPoint(id):
+    global customPointXY, customPlot
+    ids = getAllIds()
+    if (id not in ids):
+        customPointXY.append([None, None, id])
+        customPlot.append([None, None, id])
+    elif (id in ids):
+        for i in range(len(customPointXY)): # If an ID is already in use, but a new one is saved with it
+            if(customPointXY[i][2] == id): # then it gives the old ID owner a new ID
+                index = i
+                temp = customPointXY[i]
+                customPointXY[i] = [None, None, len(customPointXY)]
+                customPointXY.append(temp)
+                temp = customPlot[i]
+                customPlot[i] = [None, None, len(customPlot)]
+                customPlot.append(temp)
 
 
 # Sets the XY values for the injection point and graphs it
@@ -285,9 +320,9 @@ def appendElements(ts, pl, pc, pr, mag, graphData):
         pr = graphData[3]
     return ts, pl, pc, pr, mag
 
-# Places multiple GUI elements when a graph is plotted for the first time
+# Places all needed GUI elements when a graph is plotted or updated
 def graphOptions():
-    editScenarioBtn.place(relx=.72,rely=.73)
+    editScenarioBtn.place(relx=.67,rely=.73)
     txtStartTime.place(relx= .1, rely= .1)
     lblStartTime.place(relx= .05, rely= .1)
     txtStopTime.place(relx= .1, rely= .2)
@@ -299,6 +334,9 @@ def graphOptions():
     lblFileName.place(relx=.45,rely=.8)
     lblInjectionPoint.place(relx=.45,rely=.85)
     lblMaximumPoint.place(relx=.45,rely=.9)
+    lblCustomPoints.place(relx=.85, rely=.72)
+    customPointList.place(relx=.85, rely=.76)
+    createPointBtn.place(relx=.85, rely=.955)
     lblMinimumPoint.place(relx=.45,rely=.95)
     """ lblNadirPoint.place(relx=.8,rely=.8)
     lblTailwater.place(relx=.8,rely=.85) """
@@ -529,18 +567,18 @@ def editScenario(e):
     if (e == 0):
         lblScenarioText.place_forget()
         txtScenario.delete("1.0", tk.END)
-        txtScenario.place(relx=.57, rely=.73)
+        txtScenario.place(relx=.52, rely=.73)
         text = lblScenarioText.cget("text")
         text = text.rstrip("\n")
         txtScenario.insert(tk.END, text)
         editScenarioBtn.place_forget()
-        saveScenarioBtn.place(relx=.72,rely=.73)
+        saveScenarioBtn.place(relx=.67,rely=.73)
     else:
         lblScenarioText.config(text=txtScenario.get("1.0", tk.END))
-        lblScenarioText.place(relx=.57, rely=.72)
+        lblScenarioText.place(relx=.52, rely=.72)
         txtScenario.place_forget()
         saveScenarioBtn.place_forget()
-        editScenarioBtn.place(relx=.72,rely=.73)
+        editScenarioBtn.place(relx=.67,rely=.73)
 
 # This class is for getting all the locally saved graphs and listing them
 class SavedGraphs:
@@ -594,6 +632,7 @@ lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
 lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial",14))
 lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
 lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
+lblCustomPoints = tk.Label(gui, text="Custom points: ", font=("Arial", 14))
 """ lblNadirPoint = tk.Label(gui, text="Nadir Point [s]: -", font=("Arial",14))
 lblTailwater = tk.Label(gui, text="Tailwater [s]: -", font=("Arial",14)) """
 txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
@@ -637,17 +676,23 @@ saveAsCSVbtn = tk.Button(
 )
 createPointBtn = tk.Button(
     gui,
-    text="Add New Point",
-    font=("Arial bold",12),
+    text="Create New",
+    font=("Arial",12),
     command=lambda: createCustomPoint()
 )
-createPointBtn.pack()
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
 check = CheckButtons(rax, ("Hide P left", "Hide P center", "Hide P right", "Hide Acc Mag"), (False, False, False, False))
 check.on_clicked(GetVisibility)
 savedGraphsBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
+customPointList = ttk.Treeview(gui, column=("ID", "Name", "Time[s]"), show="headings", height=6)
+customPointList.column("ID", width=20)
+customPointList.heading("ID", text="ID")
+customPointList.column("Name", width=100)
+customPointList.heading("Name", text="Name")
+customPointList.column("Time[s]", width=60)
+customPointList.heading("Time[s]", text="Time[s]")
 
 if __name__ == "__main__":
     GUI()
