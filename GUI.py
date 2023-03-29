@@ -93,7 +93,7 @@ def onRightClick(event):
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
 
-# For creating and displaying custom points
+# Displaying custom points
 def setCustomPoint(event, id):
     global customPointXY
     ids = getAllIds()
@@ -129,7 +129,49 @@ def createCustomPlot(id, index):
     customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=((50+customPointXY[index][0]/2.5, customPointXY[index][1]-250)), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
 
-                
+# Window for creating new custom points
+def createCustomPoint():
+    crtPoint = tk.Toplevel(gui)
+    crtPoint.title("Add new point")
+    crtPoint.geometry("300x200")
+    num = crtPoint.register(checkIfNum)
+
+    lblId = tk.Label(crtPoint, text="ID (number):")
+    lblId.grid(row=0, column=0, padx=25, pady=25)
+    txtId = tk.Entry(crtPoint, validate='all', validatecommand=(num, '%P'))
+    txtId.grid(row=0, column=1)
+
+    lblName = tk.Label(crtPoint, text="Name (text):")
+    lblName.grid(row=1, column=0)
+    txtName = tk.Entry(crtPoint)
+    txtName.grid(row=1, column=1)
+
+    lblError = tk.Label(crtPoint, text="Name cannot be empty", fg="red", font=12)
+    lblCreated = tk.Label(crtPoint, text="Point created", fg="green", font=12)
+    labels = [lblError, lblCreated]
+
+    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: displayNewPoint(txtId.get(), txtName.get(), labels))
+    addBtn.grid(row=2, column=1, pady=25)
+
+    
+
+# Checks if the inputted key is a number or not
+def checkIfNum(entry):
+    if str.isdigit(entry):
+        return True
+    else:
+        return False
+    
+def displayNewPoint(id, name, labels):
+    if (name == ""): labels[0].place(relx=.35,rely=.8)
+    else: 
+        labels[0].place_forget()
+        labels[1].place(relx=.35,rely=.8)
+        if (id == ""): id = len(customPointXY)
+        else: id = int(id)
+
+    print(id, name)
+
 
 # Sets the XY values for the injection point and graphs it
 def manualInjectionPoint(event):
@@ -593,6 +635,13 @@ saveAsCSVbtn = tk.Button(
     text="Save As CSV",
     command=lambda: exportToCSV()
 )
+createPointBtn = tk.Button(
+    gui,
+    text="Add New Point",
+    font=("Arial bold",12),
+    command=lambda: createCustomPoint()
+)
+createPointBtn.pack()
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
 check = CheckButtons(rax, ("Hide P left", "Hide P center", "Hide P right", "Hide Acc Mag"), (False, False, False, False))
