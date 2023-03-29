@@ -231,50 +231,6 @@ def manualInjectionPoint(event):
     injectionPointXY = [round(event.xdata, 2), round(event.ydata, 2)]
     displayInjectionPoint(0)
 
-""" # Sets the XY values for the nadir point and graphs it
-def manualNadirPoint(event):
-    global nadirXY, annNadir, nadirPlot
-    nadirXY = [round(event.xdata, 2), round(event.ydata, 2)]
-    temp = 50
-    if annNadir: annNadir.remove(), nadirPlot.remove()
-    nadirPointT = graph.plot(nadirXY[0],nadirXY[1], "or", label="Nadir Point")
-    nadirPlot = nadirPointT.pop(0)
-    annNadir = graph.annotate("Nadir Point", xy=(nadirXY[0], nadirXY[1]), xytext=((temp+nadirXY[0])/2.5,nadirXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    lblNadirPoint.config(text="Nadir Point [s]: {}".format(nadirXY[0])) """
-
-""" # Sets the XY values for the tailwater point and graphs it
-def manualTailwaterPoint(event):
-    global tailwaterXY, annTailwater, tailwaterPlot
-    tailwaterXY = [round(event.xdata, 2), round(event.ydata, 2)]
-    temp = 50
-    if annTailwater: annTailwater.remove(), tailwaterPlot.remove()
-    tailwaterPlotT = graph.plot(tailwaterXY[0],tailwaterXY[1], "or", label="Tailwater")
-    tailwaterPlot = tailwaterPlotT.pop(0)
-    annTailwater = graph.annotate("Tailwater", xy=(tailwaterXY[0], tailwaterXY[1]), xytext=((temp+tailwaterXY[0])/2.5,tailwaterXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    lblTailwater.config(text="Tailwater [s]: {}".format(tailwaterXY[0])) """
-
-""" # If these points exist on updating the graph, then it displays them
-def displayManualPoints(ts):
-    global nadirXY, annNadir, nadirPlot, tailwaterXY, annTailwater, tailwaterPlot
-    if ts == 0: ts[0] = 50
-    if annNadir: # Nadir Point
-        annNadir.remove(), nadirPlot.remove()
-        nadirPointT = graph.plot(nadirXY[0],nadirXY[1], "or", label="Nadir Point")
-        nadirPlot = nadirPointT.pop(0)
-        annNadir = graph.annotate("Nadir Point", xy=(nadirXY[0], nadirXY[1]), xytext=((ts[0]+nadirXY[0])/2.5,nadirXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblNadirPoint.config(text="Nadir Point [s]: {}".format(nadirXY[0]))
-    if annTailwater: # Tailwater Point
-        annTailwater.remove(), tailwaterPlot.remove()
-        tailwaterPlotT = graph.plot(tailwaterXY[0],tailwaterXY[1], "or", label="Tailwater")
-        tailwaterPlot = tailwaterPlotT.pop(0)
-        annTailwater = graph.annotate("Tailwater", xy=(tailwaterXY[0], tailwaterXY[1]), xytext=((ts[0]+tailwaterXY[0])/2.5,tailwaterXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblTailwater.config(text="Tailwater [s]: {}".format(tailwaterXY[0])) """
-
-
 # If a start or stop time has been set this function removes everything not in those ranges
 def startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime):
     if(isFloat(startTime) == True):
@@ -284,6 +240,30 @@ def startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime):
         ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
         pl, pc, pr, mag = sameLength(ts,pl,pc,pr,mag,"end") # Removing all values from pressure after stopTime
     return ts, pl, pc, pr, mag
+
+# Get graph between two custom points by their id
+def customStartStopTimes():
+    startID = txtStartCustom.get()
+    stopID = txtStopCustom.get()
+    if (startID != "" and stopID != ""):
+        startID, stopID = int(startID), int(stopID)
+        startTime, stopTime = None, None
+        if (startID < stopID):
+            listChildren = customPointList.get_children()
+            for child in listChildren:
+                temp = customPointList.item(child)
+                tempValues = temp["values"]
+                if (startID == tempValues[0]):
+                    startTime = tempValues[2]
+                elif (stopID == tempValues[0]):
+                    stopTime = tempValues[2]
+                if (startTime and stopTime and startTime != "-" and stopTime != "-"):
+                    print (stopTime)
+                    plt.close()
+                    plot(readCSV(0), startTime, stopTime)
+    else:
+        plt.close()
+        plot(readCSV(0), "None", "None")    
 
 # Automatically finds the region of interest in graph from maximum pressure point
 def findRange(pl ,ts):
@@ -355,8 +335,11 @@ def graphOptions():
     customPointList.place(relx=.85, rely=.76)
     createPointBtn.place(relx=.85, rely=.955)
     lblMinimumPoint.place(relx=.45,rely=.95)
-    """ lblNadirPoint.place(relx=.8,rely=.8)
-    lblTailwater.place(relx=.8,rely=.85) """
+    lblStartStopGuide.place(relx=.34,rely=.31)
+    lblStartStopID.place(relx=.34,rely=.35)
+    txtStartCustom.place(relx=.36,rely=.35) 
+    txtStopCustom.place(relx=.39,rely=.35)
+    customStartStopBtn.place(relx=.41, rely=.345)
     saveAsCSVbtn.place(relx=.52,rely=0)
     rax.set_visible(True)
     canvas.draw()
@@ -642,6 +625,7 @@ fig, graph = plt.subplots()
 canvas = FigureCanvasTkAgg(fig, gui)
 canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
+numbersOnly = gui.register(checkIfNum)
 
 lblScenario = tk.Label(gui, text="Scenario:", font=("Arial",14))
 lblScenarioText = tk.Label(gui, text="", font=("Arial",14))
@@ -650,12 +634,14 @@ lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial",14))
 lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
 lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
 lblCustomPoints = tk.Label(gui, text="Custom points: ", font=("Arial", 14))
-""" lblNadirPoint = tk.Label(gui, text="Nadir Point [s]: -", font=("Arial",14))
-lblTailwater = tk.Label(gui, text="Tailwater [s]: -", font=("Arial",14)) """
 txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
 txtStartTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
 txtStopTime = tk.Entry(gui)
+lblStartStopGuide = tk.Label(gui, text="PLACEHOLDER NAME:")
+lblStartStopID = tk.Label(gui, text="ID:")
+txtStartCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
+txtStopCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
 lblStopTime = tk.Label(gui, text="Stop time:")
 insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
 lblInsertText = tk.Label(gui, text="Pressure change [mbar]:")
@@ -696,6 +682,11 @@ createPointBtn = tk.Button(
     text="Create New",
     font=("Arial",12),
     command=lambda: createCustomPoint()
+)
+customStartStopBtn = tk.Button(
+    gui,
+    text="Plot",
+    command=lambda: customStartStopTimes()
 )
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
