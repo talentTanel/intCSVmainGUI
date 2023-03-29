@@ -85,9 +85,12 @@ def onRightClick(event):
         menu.add_command(label="Injection Point", command=lambda: manualInjectionPoint(event))
         menu.add_command(label="Nadir Pressure")
         menu.add_command(label="Tailwater")
-        for i in range(4):
-            partialCustom = partial(setCustomPoint, event, i)
-            menu.add_command(label=i, command= partialCustom)
+        listChildren = customPointList.get_children()
+        for child in listChildren:
+            temp = customPointList.item(child)
+            tempValues = temp["values"]
+            partialCustom = partial(setCustomPoint, event, tempValues[0])
+            menu.add_command(label=tempValues[0], command= partialCustom)
         menu.add_separator()
         menu.add_command(label="Cancel", command=lambda: setCustomPoint(event, 1))
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
@@ -96,15 +99,10 @@ def onRightClick(event):
 # For displaying custom points
 def setCustomPoint(event, id):
     global customPointXY
-    ids = getAllIds()
-    if (id not in ids):
-        customPointXY.append([round(event.xdata, 2), round(event.ydata, 2), id])
-        index = len(customPointXY)-1
-    else:
-        for i in range(len(customPointXY)):
-            if(customPointXY[i][2] == id):
-                index = i
-                customPointXY[i] = [round(event.xdata, 2), round(event.ydata, 2), id]
+    for i in range(len(customPointXY)):
+        if(customPointXY[i][2] == id):
+            index = i
+            customPointXY[i] = [round(event.xdata, 2), round(event.ydata, 2), id]
     createCustomPlot(id, index)
 
 # All custom points have a numeric identifier, this searches for all the ones that are in use
@@ -117,14 +115,8 @@ def getAllIds():
 # Creates the plot and annotation on the visible graph for a custom point
 def createCustomPlot(id, index):
     global customPlot
-    ids = getAllIds()
-    if (id in ids and customPlot == []):
-        customPlot.append([None, None, id])
-    elif(id in ids and len(customPlot) <= index):
-        customPlot.append([None, None, id])
-    else:
-        if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
-        customPlot[index] = [None, None, id]
+    if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
+    customPlot[index] = [None, None, id]
     customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
     customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=((50+customPointXY[index][0]/2.5, customPointXY[index][1]-250)), color="green", arrowprops= dict(facecolor="green", headwidth=8))
     canvas.draw()
@@ -185,7 +177,6 @@ def listNewPoint(id, name, labels):
                 customPointList.item(child, values=(len(customPointXY)+1, name, "-"))
                 break
             elif (count == len(listChildren)):
-                print("last", count)
                 customPointList.insert("", "end", text=id, values=(id, name, "-"))
     saveCustomPoint(id)
 
@@ -199,12 +190,11 @@ def saveCustomPoint(id):
     elif (id in ids):
         for i in range(len(customPointXY)): # If an ID is already in use, but a new one is saved with it
             if(customPointXY[i][2] == id): # then it gives the old ID owner a new ID
-                index = i
                 temp = customPointXY[i]
-                customPointXY[i] = [None, None, len(customPointXY)]
+                customPointXY[i] = [None, None, len(customPointXY)+1]
                 customPointXY.append(temp)
                 temp = customPlot[i]
-                customPlot[i] = [None, None, len(customPlot)]
+                customPlot[i] = [None, None, len(customPlot)+1]
                 customPlot.append(temp)
 
 
