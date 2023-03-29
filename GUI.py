@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 import os
 import db
+import sys
 from math import sqrt
 from functools import partial
 
@@ -17,6 +18,7 @@ annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwat
 # User Interface
 def GUI():
     gui.geometry("1280x750")
+    gui.bind("<Control-q>", sys.exit)
     gui.mainloop()
 
 # Graphs a .CSV file
@@ -154,6 +156,8 @@ def createCustomPoint():
     lblCreated = tk.Label(crtPoint, text="Point created", fg="green", font=12)
     labels = [lblError, lblCreated]
 
+    #cmdPartial = partial(listNewPoint, txtId.get(), txtName.get(), labels)
+    crtPoint.bind('<Return>', lambda x: listNewPoint(txtId.get(), txtName.get(), labels))
     addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listNewPoint(txtId.get(), txtName.get(), labels))
     addBtn.grid(row=2, column=1, pady=25)
 
@@ -190,24 +194,16 @@ def listNewPoint(id, name, labels):
                 break
             elif (count == len(listChildren)):
                 customPointList.insert("", "end", text=id, values=(id, name, "-"))
-    sortCustomList()
-    saveCustomPoint(id)
+        saveCustomPoint(id)
 
 # Sorts the items in the treeview list by ID
 def sortCustomList():
-    listChildren = customPointList.get_children()
-    for j in range(len(listChildren)):
-        count = 0
-        for child in listChildren:
-            temp = customPointList.item(child)
-            tempValues = temp["values"]
-            if (count > 0):
-                if (oldValue[0] > tempValues[0]):
-                    customPointList.item(child, values=oldValue)
-                    customPointList.item(oldChild, values=tempValues)
-            oldValue = tempValues
-            oldChild = child
-            count = count + 1
+    children = customPointList.get_children()
+    sortedChildren = sorted(children, key=getID)
+    customPointList.set_children("", *sortedChildren)
+
+def getID(row):
+    return int(customPointList.set(row, "ID"))
 
 # Saves the new custom point values to two arrays and if needed it swaps values
 def saveCustomPoint(id):
@@ -356,6 +352,7 @@ def graphOptions():
     lblCustomPoints.place(relx=.85, rely=.72)
     customPointList.place(relx=.85, rely=.76)
     createPointBtn.place(relx=.85, rely=.955)
+    sortBtn.place(relx=.95, rely=.955)
     lblMinimumPoint.place(relx=.45,rely=.95)
     """ lblNadirPoint.place(relx=.8,rely=.8)
     lblTailwater.place(relx=.8,rely=.85) """
@@ -698,6 +695,12 @@ createPointBtn = tk.Button(
     text="Create New",
     font=("Arial",12),
     command=lambda: createCustomPoint()
+)
+sortBtn = tk.Button(
+    gui,
+    text="Sort",
+    font=("Arial",12),
+    command=lambda: sortCustomList()
 )
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
