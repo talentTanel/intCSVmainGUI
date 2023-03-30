@@ -13,8 +13,8 @@ from functools import partial
 fileName=""
 sampleRate = None
 customPointXY, customPlot = [], []
-injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
-annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
+injectionPointXY, maxPointXY, minPointXY = [], [], []
+annIp, ipPlot = None, None
 # User Interface
 def GUI():
     gui.geometry("1280x750")
@@ -33,8 +33,6 @@ def plot(graphData, startTime, stopTime):
     rPlot, = graph.plot(ts, pr, "-k", label="P Right")
     mPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
     injectionPointDef(pl, ts)
-    maximumPoint(pl, ts)
-    minimumPoint(pl, ts)
     getRange(pl, ts)
     graph.legend(loc="upper right")
     graph.set_xlabel("Time [s]")
@@ -89,8 +87,6 @@ def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
         menu = tk.Menu(gui, tearoff=0)
         menu.add_command(label="Injection Point", command=lambda: manualInjectionPoint(event))
-        menu.add_command(label="Nadir Pressure")
-        menu.add_command(label="Tailwater")
         listChildren = customPointList.get_children()
         for child in listChildren:
             temp = customPointList.item(child)
@@ -258,7 +254,6 @@ def customStartStopTimes():
                 elif (stopID == tempValues[0]):
                     stopTime = tempValues[2]
                 if (startTime and stopTime and startTime != "-" and stopTime != "-"):
-                    print (stopTime)
                     plt.close()
                     plot(readCSV(0), startTime, stopTime)
     else:
@@ -330,16 +325,15 @@ def graphOptions():
     lblFileName.config(text="File Name: {}".format(fileName))
     lblFileName.place(relx=.45,rely=.8)
     lblInjectionPoint.place(relx=.45,rely=.85)
-    lblMaximumPoint.place(relx=.45,rely=.9)
     lblCustomPoints.place(relx=.85, rely=.72)
     customPointList.place(relx=.85, rely=.76)
     createPointBtn.place(relx=.85, rely=.955)
-    lblMinimumPoint.place(relx=.45,rely=.95)
     lblStartStopGuide.place(relx=.34,rely=.31)
     lblStartStopID.place(relx=.34,rely=.35)
     txtStartCustom.place(relx=.36,rely=.35) 
     txtStopCustom.place(relx=.39,rely=.35)
     customStartStopBtn.place(relx=.41, rely=.345)
+    customStartStopResetBtn.place(relx=.445, rely=.345)
     saveAsCSVbtn.place(relx=.52,rely=0)
     rax.set_visible(True)
     canvas.draw()
@@ -384,7 +378,8 @@ def readCSV(e):
     global sampleRate
     sampleRate = getSampleRate(data[0])
     file.close()
-    data.pop(0) # data[0] is .CSV headers
+    if (e != 2): # Need headers for some exports
+        data.pop(0) # data[0] is .CSV headers
     resetLabels()
     resetOnNewFile(e)
     return data
@@ -407,9 +402,9 @@ def getSampleRate(headers):
 # When a new file is opened all previously set values for points of interests are reset
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ipPlot, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY, annNadir, nadirPlot, annTailwater, tailwaterPlot
-        injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
-        annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
+        global annIp, ipPlot, injectionPointXY, maxPointXY, minPointXY
+        injectionPointXY, maxPointXY, minPointXY = [], [], []
+        annIp, ipPlot = None, None
         lblScenarioText.config(text="")
 
 # Makes two lists the same length for graphing
@@ -426,68 +421,6 @@ def sameLength(X, pl, pc, pr, mag, type):
             pr.pop(0)
             mag.pop(0)
     return pl, pc, pr, mag
-    
-# Checks if an maximum point is already available, if there is - displays it
-def maximumPoint(pl, ts):
-    maximumPointBtn = tk.Button(
-        gui, 
-        text="Suggest maximum point",
-        command=lambda: getMaximumPoint(pl, ts)
-        )
-    maximumPointBtn.place(relx=.1, rely=.42)
-    if maxPointXY:
-        global annMax, maximum
-        maximumt = graph.plot(maxPointXY[0], maxPointXY[1], "or", label="Maximum point")
-        maximum = maximumt.pop(0)
-        tsPlace = ts[len(ts)-1] / 8
-        annMax = graph.annotate("Maximum Point", xy=(maxPointXY[0], maxPointXY[1]), xytext=(maxPointXY[0]-tsPlace, maxPointXY[1]+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblMaximumPoint.config(text="Maximum Pressure [mbar]: {}".format(maxPointXY[1]))
-
-# Finds the highest pressure in variable and that is the maximum point. Displays it on the graph
-def getMaximumPoint(pl, ts):
-    maxPl = max(pl)
-    maxTs = ts[pl.index(maxPl)]
-    
-    global annMax, maximum, maxPointXY
-    maximumt = graph.plot(maxTs, maxPl, "or", label="Maximum point")
-    maximum = maximumt.pop(0)
-    tsPlace = ts[len(ts)-1] / 8
-    annMax = graph.annotate("Maximum Point", xy=(maxTs, maxPl), xytext=(maxTs-tsPlace, maxPl+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    maxPointXY = [maxTs, maxPl]
-    lblMaximumPoint.config(text="Maximum Pressure [mbar]: {}".format(maxPl))
-
-# Checks if an minimum point is already available, if there is - displays it
-def minimumPoint(pl, ts):
-    minimumPointBtn = tk.Button(
-        gui, 
-        text="Suggest Minimum point",
-        command=lambda: getMinimumPoint(pl, ts)
-        )
-    minimumPointBtn.place(relx=.1, rely=.52)
-    if minPointXY:
-        global annmin, minimum
-        minimumt = graph.plot(minPointXY[0], minPointXY[1], "or", label="Minimum point")
-        minimum = minimumt.pop(0)
-        tsPlace = ts[len(ts)-1] / 8
-        annmin = graph.annotate("Minimum Point", xy=(minPointXY[0], minPointXY[1]), xytext=(minPointXY[0]-tsPlace, minPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblMinimumPoint.config(text="Minimum Pressure [mbar]: {}".format(minPointXY[1]))
-
-# Finds the lowest pressure in variable and that is the minimum point. Displays it on the graph
-def getMinimumPoint(pl, ts):
-    minPl = min(pl)
-    minTs = ts[pl.index(minPl)]
-    
-    global annmin, minimum, minPointXY
-    minimumt = graph.plot(minTs, minPl, "or", label="minimum point")
-    minimum = minimumt.pop(0)
-    tsPlace = ts[len(ts)-1] / 8
-    annmin = graph.annotate("Minimum Point", xy=(minTs, minPl), xytext=(minTs-tsPlace, minPl-259), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    minPointXY = [minTs, minPl]
-    lblMinimumPoint.config(text="Minimum Pressure [mbar]: {}".format(minPl))
 
 # Checks if an injection point is already available, if there is - displays it
 def injectionPointDef(pl, ts):
@@ -548,10 +481,6 @@ def injectionPointBtn(pl, ts):
 def resetLabels():
     lblFileName.config(text="File Name: -")
     lblInjectionPoint.config(text="Injection Point: -")
-    lblMaximumPoint.config(text="Maximum Pressure [mbar]: -")
-    lblMinimumPoint.config(text="Minimum Pressure [mbar]: -")
-    """ lblNadirPoint.config(text="Nadir Point [s]: -")
-    lblTailwater.config(text="Tailwater [s]: -") """
 
 # Saves graph and points of interest on it to database
 def saveGraph(ts, pl, pc, pr):
@@ -631,14 +560,12 @@ lblScenario = tk.Label(gui, text="Scenario:", font=("Arial",14))
 lblScenarioText = tk.Label(gui, text="", font=("Arial",14))
 lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
 lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial",14))
-lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
-lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
 lblCustomPoints = tk.Label(gui, text="Custom points: ", font=("Arial", 14))
 txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
 txtStartTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
 txtStopTime = tk.Entry(gui)
-lblStartStopGuide = tk.Label(gui, text="PLACEHOLDER NAME:")
+lblStartStopGuide = tk.Label(gui, text="Crop Graph between two points:")
 lblStartStopID = tk.Label(gui, text="ID:")
 txtStartCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
 txtStopCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
@@ -685,8 +612,13 @@ createPointBtn = tk.Button(
 )
 customStartStopBtn = tk.Button(
     gui,
-    text="Plot",
+    text="Crop",
     command=lambda: customStartStopTimes()
+)
+customStartStopResetBtn = tk.Button(
+    gui,
+    text="Clear",
+    command=lambda: [txtStartCustom.delete(0, tk.END), txtStopCustom.delete(0, tk.END), plot(readCSV(0), "None", "None")]
 )
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
