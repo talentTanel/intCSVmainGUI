@@ -41,7 +41,6 @@ def plot(graphData, startTime, stopTime):
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
-    #displayManualPoints(ts)
     saveGraph(ts, pl, pc, pr)
     graphOptions()
     plots = lPlot, cPlot, rPlot, mPlot
@@ -81,6 +80,26 @@ def exportToCSV():
                 writer.writerow(data)
         except Exception as e:
             print(e)
+
+# Exports full data between two custom points
+def exportCroppedCSV():
+    id1 = txtStartCustom.get()
+    id2 = txtStopCustom.get()
+    if (id1 != "" and id2 != ""):
+        data = readCSV(2)
+        header = data[0]
+        data.pop(0)
+        exportName = "cropped_{}_{}_{}.csv".format(fileName.rsplit(".",2)[0], id1, id2)
+        newData = customPointDataCropping(id1, id2, data)
+        if (newData != data):
+            try:
+                with open(exportName, "w", newline="") as file:
+                    writer = csv.writer(file)
+                    writer.writerow(header)
+                    for row in newData:
+                        writer.writerow(row)
+            except Exception as e:
+                print(e)
 
 # Sets the options and commands for each item in the right-click menu on the plot
 def onRightClick(event):
@@ -152,9 +171,8 @@ def createCustomPoint():
     lblCreated = tk.Label(crtPoint, text="Point created", fg="green", font=12)
     labels = [lblError, lblCreated]
 
-    #cmdPartial = partial(listNewPoint, txtId.get(), txtName.get(), labels)
-    crtPoint.bind('<Return>', lambda x: listNewPoint(txtId.get(), txtName.get(), labels))
-    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listNewPoint(txtId.get(), txtName.get(), labels))
+    crtPoint.bind('<Return>', lambda x: listCustomPoint(txtId.get(), txtName.get(), labels))
+    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listCustomPoint(txtId.get(), txtName.get(), labels))
     addBtn.grid(row=2, column=1, pady=25)
 
     
@@ -167,7 +185,7 @@ def checkIfNum(entry):
         return False
     
 # Checks if everything is correct in the custom point creation inputs and gives feedback, also updates values in list
-def listNewPoint(id, name, labels):
+def listCustomPoint(id, name, labels):
     if (name == ""): 
         labels[0].place(relx=.35,rely=.8)
         labels[1].place_forget()
@@ -236,6 +254,22 @@ def startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime):
         ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
         pl, pc, pr, mag = sameLength(ts,pl,pc,pr,mag,"end") # Removing all values from pressure after stopTime
     return ts, pl, pc, pr, mag
+
+# Crops the file data to only save data from between two custom points
+def customPointDataCropping(id1, id2, data):
+    listChildren = customPointList.get_children()
+    newData = data
+    for child in listChildren:
+        temp = customPointList.item(child)
+        tempValues = temp["values"]
+        if (tempValues[2] != "-"):
+            if (int(id1) == tempValues[0]):
+                startTime = tempValues[2]
+                newData = [x for x in newData if float(x[0]) >= float(startTime)]
+            elif (int(id2) == tempValues[0]):
+                stopTime = tempValues[2]
+                newData = [x for x in newData if float(x[0]) <= float(stopTime)]
+    return newData
 
 # Get graph between two custom points by their id
 def customStartStopTimes():
@@ -328,12 +362,15 @@ def graphOptions():
     lblCustomPoints.place(relx=.85, rely=.72)
     customPointList.place(relx=.85, rely=.76)
     createPointBtn.place(relx=.85, rely=.955)
-    lblStartStopGuide.place(relx=.34,rely=.31)
-    lblStartStopID.place(relx=.34,rely=.35)
-    txtStartCustom.place(relx=.36,rely=.35) 
-    txtStopCustom.place(relx=.39,rely=.35)
-    customStartStopBtn.place(relx=.41, rely=.345)
-    customStartStopResetBtn.place(relx=.445, rely=.345)
+
+    lblStartStopGuide.place(relx=.1,rely=.41)
+    lblStartStopID.place(relx=.1,rely=.45)
+    txtStartCustom.place(relx=.12,rely=.45) 
+    txtStopCustom.place(relx=.15,rely=.45)
+    customStartStopBtn.place(relx=.17, rely=.445)
+    customStartStopResetBtn.place(relx=.205, rely=.445)
+    customStartStopExportBtn.place(relx=.243, rely=.445)
+
     saveAsCSVbtn.place(relx=.52,rely=0)
     rax.set_visible(True)
     canvas.draw()
@@ -469,13 +506,13 @@ def getInjectionPointAuto(pl, ts):
 def injectionPointBtn(pl, ts):
     insertAutoBtn = tk.Button(
     gui, 
-    text="Suggest new injection point",
+    text="Suggest injection point",
     command=lambda: getInjectionPointAuto(pl, ts)
     )
-    insertAutoBtn.place(relx=.1,rely=.3)
-    insertSlider.place(relx=.11, rely=.35)
+    insertAutoBtn.place(relx=.1,rely=.25)
+    insertSlider.place(relx=.11, rely=.3)
     insertSlider.set(2)
-    lblInsertText.place(relx=0,rely=.375)
+    lblInsertText.place(relx=0,rely=.325)
 
 # Resets the values of labels to their default state when loading in a new file
 def resetLabels():
@@ -565,7 +602,7 @@ txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
 txtStartTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
 txtStopTime = tk.Entry(gui)
-lblStartStopGuide = tk.Label(gui, text="Crop Graph between two points:")
+lblStartStopGuide = tk.Label(gui, text="Crop Graph between two custom points:")
 lblStartStopID = tk.Label(gui, text="ID:")
 txtStartCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
 txtStopCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
@@ -619,6 +656,11 @@ customStartStopResetBtn = tk.Button(
     gui,
     text="Clear",
     command=lambda: [txtStartCustom.delete(0, tk.END), txtStopCustom.delete(0, tk.END), plot(readCSV(0), "None", "None")]
+)
+customStartStopExportBtn = tk.Button(
+    gui,
+    text="Export Cropped",
+    command=lambda: exportCroppedCSV()
 )
 rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
