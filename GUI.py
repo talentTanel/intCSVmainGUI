@@ -89,7 +89,7 @@ def exportCroppedCSV():
         data = readCSV(2)
         header = data[0]
         data.pop(0)
-        exportName = "cropped_{}_{}_{}.csv".format(fileName.rsplit(".",2)[0], id1, id2)
+        exportName = "Cropped_{}_{}_{}.csv".format(fileName.rsplit(".",2)[0], getCustomPointName(id1), getCustomPointName(id2))
         newData = customPointDataCropping(id1, id2, data)
         if (newData != data):
             try:
@@ -133,6 +133,15 @@ def getAllIds():
     for i in range(len(customPointXY)):
         ids.append(customPointXY[i][2])
     return ids
+
+# Gets the name value of a custom point
+def getCustomPointName(id):
+    listChildren = customPointList.get_children()
+    for child in listChildren:
+        temp = customPointList.item(child)
+        if(temp["values"][0] == int(id)):
+            return temp["values"][1]
+    return None
 
 # Creates the plot and annotation on the visible graph for a custom point
 def createCustomPlot(id, index):
@@ -417,8 +426,9 @@ def readCSV(e):
     file.close()
     if (e != 2): # Need headers for some exports
         data.pop(0) # data[0] is .CSV headers
-    resetLabels()
-    resetOnNewFile(e)
+    if (e == 1):
+        resetLabels()
+        resetOnNewFile(e)
     return data
 
 # Gets the sample rate of each opened file, needed to know header element locations
