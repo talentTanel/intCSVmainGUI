@@ -67,6 +67,7 @@ def exportToCSV():
     rowHeader = data.pop(0)
     data.pop(0)
     data = getDataAtCustomValue(data, listChildren)
+    temp3 = []
     try:
         values.append(injectionPointXY[0])
         for child in listChildren:
@@ -82,8 +83,23 @@ def exportToCSV():
                 writer = csv.writer(file)
                 writer.writerow(header)
                 writer.writerow(values)
+                for i in range(len(data)):
+                    for j in range(len(data[i])):
+                        temp3.append(data[i][j])
                 for i in range(len(rowHeader)):
-                    writer.writerow([rowHeader[i], "", data[i]])
+                    arr = [rowHeader[i], "", temp3[i]]
+                    extension = []
+                    k = 1
+                    for j in range(len(getAllIds())-1):
+                        if(values[j+3] != "-"):
+                            index = i+k*len(rowHeader)
+                            extension.append(temp3[index])
+                            k = k + 1
+                        else:
+                            extension.append("-")
+                            k = k + 1
+                    arr.extend(extension)
+                    writer.writerow(arr)
         except Exception as e:
             print(e)
 
@@ -125,15 +141,19 @@ def onRightClick(event):
         menu.post(x, y)
 
 def getDataAtCustomValue(data, listChildren):
-    values = []
+    tempValues, values = [], []
     for child in listChildren:
         temp = customPointList.item(child)
         timeValue = temp["values"][2]
-        for i in range(len(data)-1):
-            diff = abs(float(timeValue) - float(data[i][0]))
-            if diff < 0.005:
-                for j in range(len(data[i])-1):
-                    values.append(data[i][j])
+        if (timeValue != "-"):
+            for i in range(len(data)-1):
+                tempValues = []
+                diff = abs(float(timeValue) - float(data[i][0]))
+                if diff < 0.005:
+                    for j in range(len(data[i])):
+                        tempValues.append(data[i][j])
+                    break
+        values.append(tempValues)    
     return values
             
 
