@@ -60,24 +60,30 @@ def GetVisibility(label):
 # Exports points of interest and filename to a .CSV file
 def exportToCSV():
     listChildren = customPointList.get_children()
-    header = ["File Name,", "INJECTION"]
-    data = []
-    data.append(fileName)
+    header, rowHeader = ["File Name,", "INJECTION"], []
+    values = []
+    values.append(fileName)
+    data = readCSV(2)
+    rowHeader = data.pop(0)
+    data.pop(0)
+    data = getDataAtCustomValue(data, listChildren)
     try:
-        data.append(injectionPointXY[0])
+        values.append(injectionPointXY[0])
         for child in listChildren:
             temp = customPointList.item(child)
-            data.append(temp["values"][2])
+            values.append(temp["values"][2])
             header.extend([temp["values"][1]])
     except:
-        data = None
-        tk.messagebox.showerror("Error", "Please set all points before exporting")
-    if data != None:
+        values = None
+        tk.messagebox.showerror("Warning", "Please set injection point before exporting")
+    if values != None:
         try:
             with open("export_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(header)
-                writer.writerow(data)
+                writer.writerow(values)
+                for i in range(len(rowHeader)):
+                    writer.writerow([rowHeader[i], "", data[i]])
         except Exception as e:
             print(e)
 
@@ -117,6 +123,19 @@ def onRightClick(event):
         menu.add_command(label="Cancel", command=lambda: setCustomPoint(event, 1))
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
+
+def getDataAtCustomValue(data, listChildren):
+    values = []
+    for child in listChildren:
+        temp = customPointList.item(child)
+        timeValue = temp["values"][2]
+        for i in range(len(data)-1):
+            diff = abs(float(timeValue) - float(data[i][0]))
+            if diff < 0.005:
+                for j in range(len(data[i])-1):
+                    values.append(data[i][j])
+    return values
+            
 
 # For displaying custom points
 def setCustomPoint(event, id):
