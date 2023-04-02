@@ -67,17 +67,14 @@ def exportToCSV():
     data = readCSV(2)
     rowHeader = data.pop(0)
     data.pop(0)
-    data = getDataAtCustomValue(data, listChildren)
+    data = getDataAtCustomValue(data, listChildren, rowHeader)
     temp3 = []
-    try:
-        values.append(injectionPointXY[0])
-        for child in listChildren:
-            temp = customPointList.item(child)
-            values.append(temp["values"][2])
-            header.extend([temp["values"][1]])
-    except:
-        values = None
-        tk.messagebox.showerror("Warning", "Please set injection point before exporting")
+    if injectionPointXY: values.append(injectionPointXY[0])
+    else: values.append("-")
+    for child in listChildren:
+        temp = customPointList.item(child)
+        values.append(temp["values"][2])
+        header.extend([temp["values"][1]])
     if values != None:
         try:
             with open("export_"+fileName, 'w', newline="") as file:
@@ -142,19 +139,25 @@ def onRightClick(event):
         menu.post(x, y)
 
 # Gets all data from CSV file at custom point timestamp and returns all of it in one array
-def getDataAtCustomValue(data, listChildren):
+def getDataAtCustomValue(data, listChildren, rowHeader):
     tempValues, values = [], []
-    if injectionPointXY: Inj = float(injectionPointXY[0])
-    else: Inj = None
-    # Get injection point data first
-    for i in range(len(data)-1):
-        diffInj = abs(float(Inj) - float(data[i][0]))
-        if diffInj < 0.005:
-            for j in range(len(data[i])):
-                tempValues.append(data[i][j])
-            values.append(tempValues)
-            tempValues = []
-            break
+    if injectionPointXY: 
+        # Get injection point data first
+        Inj = float(injectionPointXY[0])
+        for i in range(len(data)-1):
+            diffInj = abs(float(Inj) - float(data[i][0]))
+            if diffInj < 0.005:
+                for j in range(len(data[i])):
+                    tempValues.append(data[i][j])
+                values.append(tempValues)
+                tempValues = []
+                break
+    else: 
+        tempArr = []
+        for i in range(len(rowHeader)):
+            tempArr.append("-")
+        values.append(tempArr)
+    
     for child in listChildren:
         temp = customPointList.item(child)
         timeValue = temp["values"][2]
