@@ -88,11 +88,11 @@ def exportToCSV():
                     for j in range(len(data[i])):
                         temp3.append(data[i][j])
                 for i in range(len(rowHeader)):
-                    arr = [rowHeader[i], "", temp3[i]]
+                    arr = [rowHeader[i], temp3[i]]
                     extension = []
                     k = 1
-                    for j in range(len(getAllIds())-1):
-                        if(values[j+3] != "-"):
+                    for j in range(len(getAllIds())):
+                        if(values[j+2] != "-"):
                             index = i+k*len(rowHeader)
                             extension.append(temp3[index])
                             k = k + 1
@@ -143,6 +143,9 @@ def onRightClick(event):
 
 def getDataAtCustomValue(data, listChildren):
     tempValues, values = [], []
+    if injectionPointXY: Inj = float(injectionPointXY[0])
+    else: Inj = None
+    f = 0
     for child in listChildren:
         temp = customPointList.item(child)
         timeValue = temp["values"][2]
@@ -150,7 +153,16 @@ def getDataAtCustomValue(data, listChildren):
             for i in range(len(data)-1):
                 tempValues = []
                 diff = abs(float(timeValue) - float(data[i][0]))
-                if diff < 0.005:
+                diffInj = abs(float(Inj) - float(data[i][0]))
+                if diffInj < 0.005 and f == 0:
+                    for j in range(len(data[i])):
+                        tempValues.append(data[i][j])
+                    f = 1
+                    values.append(tempValues)
+                    tempValues = []
+                elif diffInj == None: 
+                    f = 1
+                if diff < 0.005 and f == 1:
                     for j in range(len(data[i])):
                         tempValues.append(data[i][j])
                     break
