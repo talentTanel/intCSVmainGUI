@@ -42,7 +42,7 @@ def plot(graphData, startTime, stopTime):
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
     displayCustomPlot()
-    saveGraph(ts, pl, pc, pr)
+    #saveGraph(ts, pl, pc, pr)
     graphOptions()
     plots = lPlot, cPlot, rPlot, mPlot
 
@@ -600,14 +600,14 @@ def resetLabels():
     lblFileName.config(text="File Name: -")
     lblInjectionPoint.config(text="Injection Point: -")
 
-# Saves graph and points of interest on it to database
+""" # Saves graph and points of interest on it to database
 def saveGraph(ts, pl, pc, pr):
     saveGraphBtn = tk.Button(
     gui, 
     text="Save Graph",
     command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, injectionPointXY, maxPointXY, minPointXY, lblScenarioText.cget("text"))
     )
-    saveGraphBtn.place(relx=.6, rely=0)
+    saveGraphBtn.place(relx=.6, rely=0) """
 
 # Function for editing the file's scenario
 def editScenario(e):
@@ -627,7 +627,7 @@ def editScenario(e):
         saveScenarioBtn.place_forget()
         editScenarioBtn.place(relx=.67,rely=.73)
 
-# This class is for getting all the locally saved graphs and listing them
+""" # This class is for getting all the locally saved graphs and listing them
 class SavedGraphs:
     # GUI for graphs saved in local database
     def savedGraphsGUI(self):
@@ -664,7 +664,7 @@ class SavedGraphs:
     def getSelectedGraph(self, e):
         for i in self.tableList.curselection():
             plotFromDB(self.tableList.get(i))
-        self.savedGUI.destroy()
+        self.savedGUI.destroy() """
 
 # GUI elements and their placement
 gui = tk.Tk()
@@ -692,14 +692,14 @@ insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
 lblInsertText = tk.Label(gui, text="Pressure change [mbar]:")
 newGraphBtn = tk.Button(
     gui, 
-    text="New Graph", 
+    text="Open a .CSV File", 
     command=lambda: [plt.close(), plot(readCSV(1), "None", "None")]
     )
-savedGraphsBtn = tk.Button(
+""" savedGraphsBtn = tk.Button(
     gui, 
     text="Show saved graphs", 
     command=lambda: SavedGraphs().savedGraphsGUI()
-    )
+    ) """
 updateGraphBtn = tk.Button(
     gui, 
     text="Update Graph",
@@ -747,7 +747,7 @@ rax = plt.axes([0.79, 0.12, 0.2, 0.2])
 rax.set_visible(False)
 check = CheckButtons(rax, ("Hide P left", "Hide P center", "Hide P right", "Hide Acc Mag"), (False, False, False, False))
 check.on_clicked(GetVisibility)
-savedGraphsBtn.place(relx=.2,rely=0)
+#savedGraphsBtn.place(relx=.2,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
 customPointList = ttk.Treeview(gui, column=("ID", "Name", "Time[s]"), show="headings", height=6)
 customPointList.column("ID", width=20)
