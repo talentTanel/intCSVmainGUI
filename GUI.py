@@ -217,11 +217,12 @@ def createCustomPlot(id, index):
 # Displays custom points on graph when the graph is updated
 def displayCustomPlot():
     for i in range(len(getAllIds())):
-        if(customPlot[i][0]): customPlot[i][0].remove(), customPlot[i][1].remove()
-        customPlot[i] = [None, None, customPlot[i][2]]
-        customPlot[i][0] = graph.plot(customPointXY[i][0], customPointXY[i][1], "or", label=customPlot[i][2]).pop(0)
-        customPlot[i][1] = graph.annotate(customPlot[i][2], xy=(customPointXY[i][0], customPointXY[i][1]), xytext=(customPointXY[i][0], customPointXY[i][1]), color="green")
-        canvas.draw()
+        if(customPlot[i][0] != None): 
+            customPlot[i][0].remove(), customPlot[i][1].remove()
+            customPlot[i] = [None, None, customPlot[i][2]]
+            customPlot[i][0] = graph.plot(customPointXY[i][0], customPointXY[i][1], "or", label=customPlot[i][2]).pop(0)
+            customPlot[i][1] = graph.annotate(customPlot[i][2], xy=(customPointXY[i][0], customPointXY[i][1]), xytext=(customPointXY[i][0], customPointXY[i][1]), color="green")
+            canvas.draw()
 
 # Window for creating new custom points
 def createCustomPoint():
@@ -511,10 +512,18 @@ def getSampleRate(headers):
 # When a new file is opened all previously set values for points of interests are reset
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ipPlot, injectionPointXY, maxPointXY, minPointXY
+        global annIp, ipPlot, injectionPointXY, maxPointXY, minPointXY, customPointXY, customPlot
         injectionPointXY, maxPointXY, minPointXY = [], [], []
         annIp, ipPlot = None, None
         lblScenarioText.config(text="")
+        for i in range(len(customPointXY)):
+            customPointXY[i] = [None, None, customPointXY[i][2]]
+            customPlot[i] = [None, None, customPlot[i][2]]
+        listChildren = customPointList.get_children()
+        for child in listChildren:
+            temp = customPointList.item(child)
+            tempValues = temp["values"]
+            customPointList.item(child, values=(tempValues[0], tempValues[1], "-"))
 
 # Makes two lists the same length for graphing
 def sameLength(X, pl, pc, pr, mag, type):
