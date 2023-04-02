@@ -41,6 +41,7 @@ def plot(graphData, startTime, stopTime):
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
+    displayCustomPlot()
     saveGraph(ts, pl, pc, pr)
     graphOptions()
     plots = lPlot, cPlot, rPlot, mPlot
@@ -188,7 +189,7 @@ def createCustomPlot(id, index):
     if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
     customPlot[index] = [None, None, id]
     customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
-    customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=((50+customPointXY[index][0]/2.5, customPointXY[index][1]-250)), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+    customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=(customPointXY[index][0], customPointXY[index][1]), color="green")
     canvas.draw()
     listChildren = customPointList.get_children()
     for child in listChildren:
@@ -197,6 +198,15 @@ def createCustomPlot(id, index):
             tempValues = temp["values"]
             customPointList.item(child, values=(tempValues[0], tempValues[1], customPointXY[index][0]))
             break
+
+# Displays custom points on graph when the graph is updated
+def displayCustomPlot():
+    for i in range(len(getAllIds())):
+        if(customPlot[i][0]): customPlot[i][0].remove(), customPlot[i][1].remove()
+        customPlot[i] = [None, None, customPlot[i][2]]
+        customPlot[i][0] = graph.plot(customPointXY[i][0], customPointXY[i][1], "or", label=customPlot[i][2]).pop(0)
+        customPlot[i][1] = graph.annotate(customPlot[i][2], xy=(customPointXY[i][0], customPointXY[i][1]), xytext=(customPointXY[i][0], customPointXY[i][1]), color="green")
+        canvas.draw()
 
 # Window for creating new custom points
 def createCustomPoint():
@@ -222,8 +232,6 @@ def createCustomPoint():
     crtPoint.bind('<Return>', lambda x: listCustomPoint(txtId.get(), txtName.get(), labels))
     addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listCustomPoint(txtId.get(), txtName.get(), labels))
     addBtn.grid(row=2, column=1, pady=25)
-
-    
 
 # Checks if the inputted key is a number or not
 def checkIfNum(entry):
