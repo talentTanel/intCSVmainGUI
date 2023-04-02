@@ -141,11 +141,20 @@ def onRightClick(event):
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
 
+# Gets all data from CSV file at custom point timestamp and returns all of it in one array
 def getDataAtCustomValue(data, listChildren):
     tempValues, values = [], []
     if injectionPointXY: Inj = float(injectionPointXY[0])
     else: Inj = None
-    f = 0
+    # Get injection point data first
+    for i in range(len(data)-1):
+        diffInj = abs(float(Inj) - float(data[i][0]))
+        if diffInj < 0.005:
+            for j in range(len(data[i])):
+                tempValues.append(data[i][j])
+            values.append(tempValues)
+            tempValues = []
+            break
     for child in listChildren:
         temp = customPointList.item(child)
         timeValue = temp["values"][2]
@@ -153,16 +162,7 @@ def getDataAtCustomValue(data, listChildren):
             for i in range(len(data)-1):
                 tempValues = []
                 diff = abs(float(timeValue) - float(data[i][0]))
-                diffInj = abs(float(Inj) - float(data[i][0]))
-                if diffInj < 0.005 and f == 0:
-                    for j in range(len(data[i])):
-                        tempValues.append(data[i][j])
-                    f = 1
-                    values.append(tempValues)
-                    tempValues = []
-                elif diffInj == None: 
-                    f = 1
-                if diff < 0.005 and f == 1:
+                if diff < 0.005:
                     for j in range(len(data[i])):
                         tempValues.append(data[i][j])
                     break
