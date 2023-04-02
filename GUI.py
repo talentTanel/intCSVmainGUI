@@ -5,7 +5,6 @@ import csv
 import tkinter as tk
 from tkinter import filedialog, ttk
 import os
-import db
 import sys
 from math import sqrt
 from functools import partial
@@ -447,7 +446,7 @@ def graphOptions():
     rax.set_visible(True)
     canvas.draw()
 
-# Gets graph from database data
+""" # Gets graph from database data
 def plotFromDB(table):
     graph.clear()
     tableName = table.rsplit(".",2)[0]
@@ -464,7 +463,7 @@ def plotFromDB(table):
     startTime = data[0][0]
     stopTime = data[0][len(data[0])-1]
     resetOnPullDB(tableName, scenario, startTime, stopTime)
-    plot(data, startTime, stopTime)
+    plot(data, startTime, stopTime) """
     
 # Resets & updates GUI element values when getting a new graph from db
 def resetOnPullDB(tableName, scenario, startTime, stopTime):
