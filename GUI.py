@@ -7,7 +7,9 @@ from tkinter import filedialog, ttk
 import os
 import db
 import sys
+#import seaborn as sns
 from math import sqrt
+from numpy import std
 from functools import partial
 
 fileName=""
@@ -19,6 +21,7 @@ annIp, ipPlot = None, None
 def GUI():
     gui.geometry("1280x750")
     gui.bind("<Control-q>", sys.exit)
+    #sns.set_theme(context='paper') // Maybe something for the future to change themes?
     gui.mainloop()
 
 # Graphs a .CSV file
@@ -666,6 +669,38 @@ class SavedGraphs:
             plotFromDB(self.tableList.get(i))
         self.savedGUI.destroy()
 
+# Class for the confidence graphs
+class confidenceGraph:
+    # Class GUI
+    def menu(self):
+        self.savedGUI = tk.Toplevel()
+        self.savedGUI.geometry("800x800")
+        self.savedGUI.title("Saved Graphs")
+        self.savedGUI.resizable(False,False)
+        self.graph1()
+        self.savedGUI.mainloop()
+
+    def graph1(self):
+        data = readCSV(3)
+        fig1, ax1 = plt.subplots()
+        ts, pl, = [], []
+        for i in range(len(data)):
+            ts.append(float(data[i][0]))
+            pl.append(float(data[i][1]))
+        #plMean = self.getMean(pl)
+        ax1.plot(ts, pl)
+        """ ax1.fill_between(
+            x, df_grouped['ci_lower'], df_grouped['ci_upper'], color='b', alpha=.15) """
+        ax1.set_title('Placeholder name')
+        plt.show()
+        
+    # Gets the mean of a list/array and returns it
+    def getMean(self, a):
+        sum = 0
+        for i in range(len(a)):
+            sum = sum + a[i]
+        return sum / len(a)
+
 # GUI elements and their placement
 gui = tk.Tk()
 fig, graph = plt.subplots()
@@ -700,6 +735,11 @@ savedGraphsBtn = tk.Button(
     text="Show saved graphs", 
     command=lambda: SavedGraphs().savedGraphsGUI()
     )
+confidenceGraphBtn = tk.Button(
+    gui,
+    text="Confidence Graphs",
+    command=lambda: confidenceGraph().menu()
+)
 updateGraphBtn = tk.Button(
     gui, 
     text="Update Graph",
@@ -748,6 +788,7 @@ rax.set_visible(False)
 check = CheckButtons(rax, ("Hide P left", "Hide P center", "Hide P right", "Hide Acc Mag"), (False, False, False, False))
 check.on_clicked(GetVisibility)
 savedGraphsBtn.place(relx=.2,rely=0)
+confidenceGraphBtn.place(relx=.4,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
 customPointList = ttk.Treeview(gui, column=("ID", "Name", "Time[s]"), show="headings", height=6)
 customPointList.column("ID", width=20)

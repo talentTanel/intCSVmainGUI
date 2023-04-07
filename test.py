@@ -1,41 +1,53 @@
-import tkinter as tk
-arr = []
-def create_label():
-    # Create a new window to input label options
-    label_window = tk.Toplevel(root)
-    label_window.title("Create Label")
+import altair as alt
+import matplotlib.pyplot as plt
+from matplotlib_inline.backend_inline import set_matplotlib_formats
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+import seaborn as sns
 
-    # Create input fields for label options
-    id_label = tk.Label(label_window, text="ID:")
-    id_label.grid(row=0, column=0)
-    id_entry = tk.Entry(label_window)
-    id_entry.grid(row=0, column=1)
+#set_matplotlib_formats('retina')
 
-    text_label = tk.Label(label_window, text="Text:")
-    text_label.grid(row=1, column=0)
-    text_entry = tk.Entry(label_window)
-    text_entry.grid(row=1, column=1)
+# Create our new styles dictionary for use in rcParams.
+""" dpi = 144
+mpl_styles = {
+    'figure.figsize': (6, 4),
+    # Up the default resolution for figures.
+    'figure.dpi': dpi,
+    'savefig.dpi': dpi,
+} """
 
-    value_label = tk.Label(label_window, text="Value:")
-    value_label.grid(row=2, column=0)
-    value_entry = tk.Entry(label_window)
-    value_entry.grid(row=2, column=1)
+#sns.set_theme(context='paper')
+#plt.rcParams.update(mpl_styles)
 
-    # Create button to create label with input options
-    create_button = tk.Button(label_window, text="Create", command=lambda: add_label(id_entry.get(), text_entry.get(), value_entry.get()))
-    create_button.grid(row=3, column=1)
+df = sns.load_dataset('taxis')
+df.head()
 
-def add_label(label_id, label_text, label_value):
-    # Create a new label with input options and add it to the main window
-    arr.append([label_value, label_text, label_id])
-    print(arr)
-    new_label = tk.Label(root, text=label_text)
-    new_label.pack()
-    labels[label_id] = {"text": label_text, "value": label_value}
+# Convert the pickup time to datetime and create a new column truncated to day.
+df['pickup'] = pd.to_datetime(df.pickup)
+df['pickup_date'] = pd.to_datetime(df.pickup.dt.date)
+# Altair can't handle more than 5k rows so we truncate the data.
+df = df.loc[df['pickup_date'] >= '2019-03-01'][:5000]
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    labels = {}
-    create_label_button = tk.Button(root, text="Create Label", command=create_label)
-    create_label_button.pack()
-    root.mainloop()
+# We also create a grouped version, with calculated mean and standard deviation.
+df_grouped = (
+    df[['pickup_date', 'fare']].groupby(['pickup_date'])
+    .agg(['mean', 'std', 'count'])
+)
+df_grouped = df_grouped.droplevel(axis=1, level=0).reset_index()
+# Calculate a confidence interval as well.
+df_grouped['ci'] = 1.96 * df_grouped['std'] / np.sqrt(df_grouped['count'])
+print(df_grouped['count'])
+df_grouped['ci_lower'] = df_grouped['mean'] - df_grouped['ci']
+df_grouped['ci_upper'] = df_grouped['mean'] + df_grouped['ci']
+df_grouped.head()
+
+fig, ax = plt.subplots()
+x = df_grouped['pickup_date']
+ax.plot(x, df_grouped['mean'])
+""" ax.fill_between(
+    x, df_grouped['ci_lower'], df_grouped['ci_upper'], color='b', alpha=.15) """
+#ax.set_ylim(ymin=0)
+ax.set_title('Avg Taxi Fare by Date')
+fig.autofmt_xdate(rotation=45)
+plt.show()
