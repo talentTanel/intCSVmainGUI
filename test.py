@@ -44,6 +44,7 @@ df_grouped.head()
 
 fig, ax = plt.subplots()
 x = df_grouped['pickup_date']
+print(x)
 ax.plot(x, df_grouped['mean'])
 ax.fill_between(
     x, df_grouped['ci_lower'], df_grouped['ci_upper'], color='b', alpha=.15)

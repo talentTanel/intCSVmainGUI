@@ -689,15 +689,15 @@ class confidenceGraph:
         plt.close()
         fig1, ax1 = plt.subplots()
 
-        grouped = self.allDatas.groupby("Time [ms]")["PL [hPa]"].agg(["mean", "std"])
-        grouped["ci"] = 1.96 * grouped["std"] / np.sqrt(self.allDatas.count())
+        grouped = self.allDatas.groupby("Time [ms]")["PL [hPa]"].agg(["mean", "count"])
+        grouped["std"] = self.allDatas.groupby("Time [ms]")["PL [hPa]"].std(ddof=0) # degree of freedom = 0, otherwise we get NaN
+        grouped["ci"] = 1.96 * grouped["std"] / np.sqrt(grouped["count"]) # 95% confidence interval
         grouped["lower"] = grouped["mean"] - grouped["ci"]
         grouped["upper"] = grouped["mean"] + grouped["ci"]
-        print(grouped["Time [ms]"].duplicated().sum())
         
-        ax1.plot(self.allDatas["Time [ms]"], self.allDatas["PL [hPa]"], linewidth=0.3, color="lightgray")
+        ax1.plot(self.allDatas["Time [ms]"], self.allDatas["PL [hPa]"], linewidth=0.3, color="gray")
         #ax1.plot(grouped["mean"], linewidth=0.5)
-        #ax1.fill_between(grouped.index, grouped["lower"], grouped["upper"], color='r')
+        ax1.fill_between(grouped.index, grouped["lower"], grouped["upper"], color='r', alpha=0.3)
         ax1.set_title('Placeholder name')
         plt.show()
 
