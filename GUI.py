@@ -4,9 +4,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import csv
 import tkinter as tk
 from tkinter import filedialog, ttk
+import promptlib
+import glob
 import os
 import db
 import sys
+import pandas as pd
+import numpy as np
 #import seaborn as sns
 from math import sqrt
 from numpy import std
@@ -671,35 +675,67 @@ class SavedGraphs:
 
 # Class for the confidence graphs
 class confidenceGraph:
+    files, allDatas, ts = [], [], []
     # Class GUI
     def menu(self):
         self.savedGUI = tk.Toplevel()
         self.savedGUI.geometry("800x800")
         self.savedGUI.title("Saved Graphs")
         self.savedGUI.resizable(False,False)
-        self.graph1()
+        self.openGroupBtn(self.savedGUI)
         self.savedGUI.mainloop()
 
     def graph1(self):
-        data = readCSV(3)
+        plt.close()
         fig1, ax1 = plt.subplots()
-        ts, pl, = [], []
-        for i in range(len(data)):
-            ts.append(float(data[i][0]))
-            pl.append(float(data[i][1]))
-        #plMean = self.getMean(pl)
-        ax1.plot(ts, pl)
-        """ ax1.fill_between(
-            x, df_grouped['ci_lower'], df_grouped['ci_upper'], color='b', alpha=.15) """
+
+        grouped = self.allDatas.groupby("Time [ms]")["PL [hPa]"].agg(["mean", "std"])
+        grouped["ci"] = 1.96 * grouped["std"] / np.sqrt(self.allDatas.count())
+        grouped["lower"] = grouped["mean"] - grouped["ci"]
+        grouped["upper"] = grouped["mean"] + grouped["ci"]
+        print(grouped["Time [ms]"].duplicated().sum())
+        
+        ax1.plot(self.allDatas["Time [ms]"], self.allDatas["PL [hPa]"], linewidth=0.3, color="lightgray")
+        #ax1.plot(grouped["mean"], linewidth=0.5)
+        #ax1.fill_between(grouped.index, grouped["lower"], grouped["upper"], color='r')
         ax1.set_title('Placeholder name')
         plt.show()
-        
-    # Gets the mean of a list/array and returns it
-    def getMean(self, a):
-        sum = 0
-        for i in range(len(a)):
-            sum = sum + a[i]
-        return sum / len(a)
+
+    # Buttons for working around the confidence graph
+    def openGroupBtn(self, savedGUI):
+        openBtn = tk.Button(
+            savedGUI,
+            text="Select Folder with Grouped CSVs",
+            command=lambda: self.readFolder(1)
+        )
+        openBtn.pack()
+        openBtn2 = tk.Button(
+            savedGUI,
+            text="Select Folder with Grouped CSVs222",
+            command=lambda: self.readFolder(2)
+        )
+        openBtn2.pack()
+        graphBtn = tk.Button(
+            savedGUI,
+            text="Confidence Graph",
+            command=lambda: self.graph1()
+        )
+        graphBtn.pack()
+
+    # 1. Prompts the user to select a folder with a group of CSV files; 2. Gets data of all possible CSV files in folder
+    def readFolder(self, e):
+        if e == 1:
+            prmt = promptlib.Files()
+            dir = prmt.dir()
+            os.chdir(dir)
+            self.files = glob.glob("*.csv")
+        if e == 2:
+            allData = []
+            for i in range(len(self.files)):
+                data = pd.read_csv(self.files[i]) # using Pandas is easier for this job
+                allData.append(data)
+            self.ts = allData[0]["Time [ms]"]
+            self.allDatas = pd.concat(allData)
 
 # GUI elements and their placement
 gui = tk.Tk()

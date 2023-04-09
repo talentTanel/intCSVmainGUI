@@ -37,7 +37,7 @@ df_grouped = (
 df_grouped = df_grouped.droplevel(axis=1, level=0).reset_index()
 # Calculate a confidence interval as well.
 df_grouped['ci'] = 1.96 * df_grouped['std'] / np.sqrt(df_grouped['count'])
-print(df_grouped['count'])
+print(df_grouped['ci'])
 df_grouped['ci_lower'] = df_grouped['mean'] - df_grouped['ci']
 df_grouped['ci_upper'] = df_grouped['mean'] + df_grouped['ci']
 df_grouped.head()
@@ -45,8 +45,8 @@ df_grouped.head()
 fig, ax = plt.subplots()
 x = df_grouped['pickup_date']
 ax.plot(x, df_grouped['mean'])
-""" ax.fill_between(
-    x, df_grouped['ci_lower'], df_grouped['ci_upper'], color='b', alpha=.15) """
+ax.fill_between(
+    x, df_grouped['ci_lower'], df_grouped['ci_upper'], color='b', alpha=.15)
 #ax.set_ylim(ymin=0)
 ax.set_title('Avg Taxi Fare by Date')
 fig.autofmt_xdate(rotation=45)
