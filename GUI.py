@@ -11,7 +11,7 @@ import db
 import sys
 import pandas as pd
 import numpy as np
-#import seaborn as sns
+import seaborn as sns
 from math import sqrt
 from numpy import std
 from functools import partial
@@ -675,7 +675,7 @@ class SavedGraphs:
 
 # Class for the confidence graphs
 class confidenceGraph:
-    files, allDatas, ts = [], [], []
+    files, allDatas = [], []
     # Class GUI
     def menu(self):
         self.savedGUI = tk.Toplevel()
@@ -695,9 +695,13 @@ class confidenceGraph:
         grouped["lower"] = grouped["mean"] - grouped["ci"]
         grouped["upper"] = grouped["mean"] + grouped["ci"]
         
-        ax1.plot(self.allDatas["Time [ms]"], self.allDatas["PL [hPa]"], linewidth=0.3, color="gray")
-        #ax1.plot(grouped["mean"], linewidth=0.5)
-        ax1.fill_between(grouped.index, grouped["lower"], grouped["upper"], color='r', alpha=0.3)
+        x = self.allDatas["Time [ms]"]
+        y = self.allDatas["PL [hPa]"]
+        #x, y = zip(*sorted(zip(x,y)))
+        ax1.plot(x, y, linewidth=0.3, color="gray", alpha=0.8)
+        ax1.plot(grouped["std"], color="red", alpha=0.5)
+        #ax1.plot(grouped["mean"], linewidth=0.5, color="r")
+        #ax1.fill_between(grouped.index, grouped["lower"], grouped["upper"], color='r', alpha=0.3)
         ax1.set_title('Placeholder name')
         plt.show()
 
@@ -734,7 +738,6 @@ class confidenceGraph:
             for i in range(len(self.files)):
                 data = pd.read_csv(self.files[i]) # using Pandas is easier for this job
                 allData.append(data)
-            self.ts = allData[0]["Time [ms]"]
             self.allDatas = pd.concat(allData)
 
 # GUI elements and their placement
