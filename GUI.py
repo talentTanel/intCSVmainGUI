@@ -13,7 +13,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from math import sqrt
-from numpy import std
 from functools import partial
 
 fileName=""
@@ -488,7 +487,9 @@ def resetOnPullDB(tableName, scenario, startTime, stopTime):
 def readCSV(e):
     if e == 1:
         global fileName
-        fileName = os.path.basename(filedialog.askopenfilename())
+        path, file = filedialog.askopenfilename().rsplit("/",1)
+        os.chdir(path)
+        fileName = os.path.basename(file)
     file = open(fileName,"r")
     data = list(csv.reader(file, delimiter=","))
     global sampleRate
@@ -685,60 +686,59 @@ class confidenceGraph:
         self.openGroupBtn(self.savedGUI)
         self.savedGUI.mainloop()
 
-    def graph1(self):
+    def graph1(self, df_combined):
         plt.close()
-        fig1, ax1 = plt.subplots()
-
-        grouped = self.allDatas.groupby("Time [ms]")["PL [hPa]"].agg(["mean", "count"])
-        grouped["std"] = self.allDatas.groupby("Time [ms]")["PL [hPa]"].std(ddof=0) # degree of freedom = 0, otherwise we get NaN
-        grouped["ci"] = 1.96 * grouped["std"] / np.sqrt(grouped["count"]) # 95% confidence interval
-        grouped["lower"] = grouped["mean"] - grouped["ci"]
-        grouped["upper"] = grouped["mean"] + grouped["ci"]
+        # Normalize time from 0 to 1
+        df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
         
-        x = self.allDatas["Time [ms]"]
-        y = self.allDatas["PL [hPa]"]
-        #x, y = zip(*sorted(zip(x,y)))
-        ax1.plot(x, y, linewidth=0.3, color="gray", alpha=0.8)
-        ax1.plot(grouped["std"], color="red", alpha=0.5)
-        #ax1.plot(grouped["mean"], linewidth=0.5, color="r")
-        #ax1.fill_between(grouped.index, grouped["lower"], grouped["upper"], color='r', alpha=0.3)
-        ax1.set_title('Placeholder name')
+        df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std']) # get mean & standard deviation
+        df_grouped.reset_index(inplace=True)  # reset the index to make Time [ms] a column again
+        median_std = df_grouped['std'].median()
+        df_grouped['std'].fillna(median_std, inplace=True) # changing NaN std values to median std
+
+        # Smoothing out the mean into a rolling mean. Otherwise it looks bad on graph
+        window_size = 100
+        df_grouped['rolling_mean'] = df_grouped['mean'].rolling(window_size, center=True).mean()
+        df_grouped['lower'] = df_grouped['mean']-df_grouped['std']
+        df_grouped['upper'] = df_grouped['mean']+df_grouped['std']
+
+        plt.figure()
+        plt.title('95% Confidence')
+        plt.xlabel('Normalised time')
+        plt.ylabel('Pressure (mbar)')
+
+        plt.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
+
+        # separate plots for each file
+        for filename in set(df_combined['filename']):
+            file_data = df_combined[df_combined['filename'] == filename]
+            plt.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
+            
+        plt.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
         plt.show()
 
-    # Buttons for working around the confidence graph
+    # Button for prompting the user to choose a folder
     def openGroupBtn(self, savedGUI):
         openBtn = tk.Button(
             savedGUI,
             text="Select Folder with Grouped CSVs",
-            command=lambda: self.readFolder(1)
+            command=lambda: self.readFolder()
         )
         openBtn.pack()
-        openBtn2 = tk.Button(
-            savedGUI,
-            text="Select Folder with Grouped CSVs222",
-            command=lambda: self.readFolder(2)
-        )
-        openBtn2.pack()
-        graphBtn = tk.Button(
-            savedGUI,
-            text="Confidence Graph",
-            command=lambda: self.graph1()
-        )
-        graphBtn.pack()
 
-    # 1. Prompts the user to select a folder with a group of CSV files; 2. Gets data of all possible CSV files in folder
-    def readFolder(self, e):
-        if e == 1:
-            prmt = promptlib.Files()
-            dir = prmt.dir()
-            os.chdir(dir)
-            self.files = glob.glob("*.csv")
-        if e == 2:
-            allData = []
-            for i in range(len(self.files)):
-                data = pd.read_csv(self.files[i]) # using Pandas is easier for this job
-                allData.append(data)
-            self.allDatas = pd.concat(allData)
+    # 1. Prompts the user to select a folder with a group of CSV files and gets data from all possible CSV files in folder
+    def readFolder(self):
+        prmt = promptlib.Files()
+        dir = prmt.dir()
+        os.chdir(dir)
+        dfTemp = []
+        for filename in os.listdir(dir): # making a list of all files in folder and reads all data into one dataframe
+            if filename.endswith('.csv'):
+                filePath = os.path.join(dir, filename)
+                df = pd.read_csv(filePath)
+                df['filename'] = filename
+                dfTemp.append(df)
+        self.graph1(pd.concat(dfTemp))
 
 # GUI elements and their placement
 gui = tk.Tk()
