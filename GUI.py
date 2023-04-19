@@ -676,6 +676,7 @@ class SavedGraphs:
 # Class for the confidence graphs
 class confidenceGraph:
     files, allDatas = [], []
+
     # Class GUI
     def menu(self):
         self.savedGUI = tk.Toplevel()
@@ -685,8 +686,8 @@ class confidenceGraph:
         self.openGroupBtn(self.savedGUI)
         self.savedGUI.mainloop()
 
-    def graph1(self, df_combined):
-        plt.close()
+    # Graphs the confidence graph onto the class window
+    def graph1(self, df_combined, savedGUI):
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
         
@@ -700,33 +701,36 @@ class confidenceGraph:
         df_grouped['rolling_mean'] = df_grouped['mean'].rolling(window_size, center=True).mean()
         df_grouped['lower'] = df_grouped['mean']-df_grouped['std']
         df_grouped['upper'] = df_grouped['mean']+df_grouped['std']
+        
+        figConf = plt.figure()
+        axConf = figConf.add_subplot()
+        canvasConf = FigureCanvasTkAgg(figConf, savedGUI)
+        canvasConf.get_tk_widget().pack()
 
-        plt.figure()
         plt.title('95% Confidence')
         plt.xlabel('Normalised time')
         plt.ylabel('Pressure (mbar)')
 
-        plt.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
-
+        axConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
         # separate plots for each file
         for filename in set(df_combined['filename']):
             file_data = df_combined[df_combined['filename'] == filename]
-            plt.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
-            
-        plt.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
-        plt.show()
+            axConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
+        axConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
+
+        canvasConf.draw()
 
     # Button for prompting the user to choose a folder
     def openGroupBtn(self, savedGUI):
         openBtn = tk.Button(
             savedGUI,
             text="Select Folder with Grouped CSVs",
-            command=lambda: self.readFolder()
+            command=lambda: self.readFolder(savedGUI)
         )
         openBtn.pack()
 
     # 1. Prompts the user to select a folder with a group of CSV files and gets data from all possible CSV files in folder
-    def readFolder(self):
+    def readFolder(self, savedGUI):
         prmt = promptlib.Files()
         dir = prmt.dir()
         os.chdir(dir)
@@ -737,7 +741,7 @@ class confidenceGraph:
                 df = pd.read_csv(filePath)
                 df['filename'] = filename
                 dfTemp.append(df)
-        self.graph1(pd.concat(dfTemp))
+        self.graph1(pd.concat(dfTemp), savedGUI)
 
 # GUI elements and their placement
 gui = tk.Tk()
