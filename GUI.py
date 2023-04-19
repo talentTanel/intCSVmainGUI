@@ -487,9 +487,8 @@ def resetOnPullDB(tableName, scenario, startTime, stopTime):
 def readCSV(e):
     if e == 1:
         global fileName
-        path, file = filedialog.askopenfilename().rsplit("/",1)
+        path, fileName = filedialog.askopenfilename().rsplit("/",1)
         os.chdir(path)
-        fileName = os.path.basename(file)
     file = open(fileName,"r")
     data = list(csv.reader(file, delimiter=","))
     global sampleRate
