@@ -564,6 +564,14 @@ def getInjectionPointAuto(pl, ts):
                 injectionPointXY = [tsIn, plIn]
                 lblInjectionPoint.config(text="Injection Point: {} [s]".format(tsIn))
                 break
+
+# Toggles the injection point annotation visibility on graph
+def toggleInjectionVisibility():
+    global annIp
+    if annIp:
+        visible = annIp.get_visible()
+        annIp.set_visible(not visible)
+        canvas.draw()
         
 # Suggests an injection point when a specific button is pressed
 def injectionPointBtn(pl, ts):
@@ -572,7 +580,13 @@ def injectionPointBtn(pl, ts):
         text="Suggest injection point",
         command=lambda: getInjectionPointAuto(pl, ts)
     )
+    insertAutoToggle = tk.Button(
+        gui,
+        text="Toggle Visibility",
+        command=lambda: toggleInjectionVisibility()
+    )
     insertAutoBtn.place(relx=.05,rely=.08)
+    insertAutoToggle.place(relx=.17, rely=.08)
     insertSlider.place(relx=.05, rely=.14)
     insertSlider.set(2)
     lblInsertText.place(relx=.05,rely=.12)
@@ -730,10 +744,12 @@ class confidenceGraph:
 
 # GUI elements and their placement
 gui = tk.Tk()
-fig, graph = plt.subplots()
+fig, graph = plt.subplots(figsize=(9,7.6))
 canvas = FigureCanvasTkAgg(fig, gui)
-canvas.get_tk_widget().place(relx=.5,rely=.05)
+canvas.get_tk_widget().place(relx=.3,rely=0)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
+toolbar.config(background="white")
+toolbar._message_label.config(background="white", highlightbackground="white")
 numbersOnly = gui.register(checkIfNum)
 
 lblScenario = tk.Label(gui, text="Scenario:", font=("Arial bold",12))
