@@ -30,7 +30,7 @@ def GUI():
 # Graphs a .CSV file
 def plot(graphData, startTime, stopTime):
     graph.clear()
-    global plots
+    global lines, lined
     ts, pl, pc, pr, mag = [], [], [], [], []
     ts, pl, pc, pr, mag = appendElements(ts, pl, pc, pr, mag, graphData)
     ts, pl, pc, pr, mag = startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime)
@@ -38,9 +38,18 @@ def plot(graphData, startTime, stopTime):
     cPlot, = graph.plot(ts, pc, "-b", label="P Center")
     rPlot, = graph.plot(ts, pr, "-k", label="P Right")
     mPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
+    lines = [lPlot, cPlot, rPlot, mPlot]
+    lined = {}
     injectionPointDef(pl, ts)
-    getRange(pl, ts)
-    graph.legend(loc="upper right")
+
+    legend = graph.legend(loc="upper right")
+    for leg, orig in zip(legend.get_lines(), lines): # Make all plots in legend clickable
+        # https://matplotlib.org/stable/gallery/event_handling/legend_picking.html#sphx-glr-gallery-event-handling-legend-picking-py
+        leg.set_picker(True)
+        leg.set_pickradius(5)
+        lined[leg] = orig
+    fig.canvas.mpl_connect('pick_event', onClickLegend)
+
     graph.set_xlabel("Time [s]")
     graph.set_ylabel("Pressure [mbar]")
     canvas.mpl_connect('button_press_event', onRightClick)
@@ -50,18 +59,14 @@ def plot(graphData, startTime, stopTime):
     displayCustomPlot()
     saveGraph(ts, pl, pc, pr)
     graphOptions()
-    plots = lPlot, cPlot, rPlot, mPlot
-
-# Gets the visibility of a plot and reverses it when corresponding button is pressed
-def GetVisibility(label):
-    if label == "Hide P left":
-        plots[0].set_visible(not plots[0].get_visible())
-    elif label == "Hide P center":
-        plots[1].set_visible(not plots[1].get_visible())
-    elif label == "Hide P right":
-        plots[2].set_visible(not plots[2].get_visible())
-    elif label == "Hide Acc Mag":
-        plots[3].set_visible(not plots[3].get_visible())
+    
+# Handles clicks on legend, hides/unhides a plot
+def onClickLegend(event):
+    legend = event.artist
+    line = lined[legend]
+    visible = line.get_visible()
+    line.set_visible(not visible)
+    legend.set_alpha(1.0 if not visible else 0.2)
     canvas.draw()
 
 # Exports points of interest and filename to a .CSV file
@@ -372,26 +377,6 @@ def customStartStopTimes():
         plt.close()
         plot(readCSV(0), "None", "None")    
 
-# Automatically finds the region of interest in graph from maximum pressure point
-def findRange(pl ,ts):
-    maxPl = max(pl)
-    startTs = ts[pl.index(maxPl)]-40
-    stopTs = ts[pl.index(maxPl)]+50
-    txtStartTime.delete(0, tk.END)
-    txtStopTime.delete(0, tk.END)
-    txtStartTime.insert(0, round(startTs))
-    txtStopTime.insert(0, round(stopTs))
-    plt.close()
-    plot(readCSV(0), txtStartTime.get(), txtStopTime.get())
-
-# Button for finding area of interest
-def getRange(pl, ts):
-    getRangeBtn = tk.Button(
-        gui,
-        text="Get area of interest",
-        command= lambda: findRange(pl, ts)
-    )
-    getRangeBtn.place(relx=.21, rely=.15)
 # Checks if a number is a float or not. Used for startTime & stopTime
 def isFloat(num):
     try:
@@ -426,31 +411,25 @@ def appendElements(ts, pl, pc, pr, mag, graphData):
 
 # Places all needed GUI elements when a graph is plotted or updated
 def graphOptions():
-    editScenarioBtn.place(relx=.67,rely=.73)
-    txtStartTime.place(relx= .1, rely= .1)
-    lblStartTime.place(relx= .05, rely= .1)
-    txtStopTime.place(relx= .1, rely= .2)
-    lblStopTime.place(relx= .05, rely= .2)
-    updateGraphBtn.place(relx=.21,rely=.09)
-    lblScenario.place(relx=.45, rely=.72)
-    lblScenarioText.place(relx=.52, rely=.72)
+    editScenarioBtn.place(relx=.05,rely=.21)
+    lblScenario.place(relx=.051, rely=.25)
+    lblScenarioText.place(relx=.12, rely=.25)
     lblFileName.config(text="File Name: {}".format(fileName))
-    lblFileName.place(relx=.45,rely=.8)
-    lblInjectionPoint.place(relx=.45,rely=.85)
-    lblCustomPoints.place(relx=.85, rely=.72)
-    customPointList.place(relx=.85, rely=.76)
-    createPointBtn.place(relx=.85, rely=.955)
+    lblFileName.place(relx=.051,rely=.33)
+    lblInjectionPoint.place(relx=.051,rely=.38)
+    lblCustomPoints.place(relx=.05, rely=.42)
+    customPointList.place(relx=.05, rely=.46)
+    createPointBtn.place(relx=.05, rely=.655)
 
-    lblStartStopGuide.place(relx=.1,rely=.41)
-    lblStartStopID.place(relx=.1,rely=.45)
-    txtStartCustom.place(relx=.12,rely=.45) 
-    txtStopCustom.place(relx=.15,rely=.45)
-    customStartStopBtn.place(relx=.17, rely=.445)
-    customStartStopResetBtn.place(relx=.205, rely=.445)
-    customStartStopExportBtn.place(relx=.243, rely=.445)
+    lblStartStopGuide.place(relx=.05,rely=.71)
+    lblStartStopID.place(relx=.05,rely=.75)
+    txtStartCustom.place(relx=.07,rely=.75) 
+    txtStopCustom.place(relx=.1,rely=.75)
+    customStartStopBtn.place(relx=.12, rely=.745)
+    customStartStopResetBtn.place(relx=.155, rely=.745)
+    customStartStopExportBtn.place(relx=.193, rely=.745)
 
-    saveAsCSVbtn.place(relx=.52,rely=0)
-    rax.set_visible(True)
+    saveAsCSVbtn.place(relx=.05,rely=.8)
     canvas.draw()
 
 # Gets graph from database data
@@ -477,10 +456,6 @@ def resetOnPullDB(tableName, scenario, startTime, stopTime):
     global fileName
     fileName = tableName.replace(" ", "") + ".csv"
     lblScenarioText.config(text=scenario)
-    txtStartTime.delete(0, tk.END)
-    txtStartTime.insert(tk.END, round(startTime))
-    txtStopTime.delete(0, tk.END)
-    txtStopTime.insert(tk.END, round(stopTime))
 
 
 # Opens a .CSV file for further processing
@@ -593,14 +568,14 @@ def getInjectionPointAuto(pl, ts):
 # Suggests an injection point when a specific button is pressed
 def injectionPointBtn(pl, ts):
     insertAutoBtn = tk.Button(
-    gui, 
-    text="Suggest injection point",
-    command=lambda: getInjectionPointAuto(pl, ts)
+        gui, 
+        text="Suggest injection point",
+        command=lambda: getInjectionPointAuto(pl, ts)
     )
-    insertAutoBtn.place(relx=.1,rely=.25)
-    insertSlider.place(relx=.11, rely=.3)
+    insertAutoBtn.place(relx=.05,rely=.08)
+    insertSlider.place(relx=.05, rely=.14)
     insertSlider.set(2)
-    lblInsertText.place(relx=0,rely=.325)
+    lblInsertText.place(relx=.05,rely=.12)
 
 # Resets the values of labels to their default state when loading in a new file
 def resetLabels():
@@ -614,25 +589,25 @@ def saveGraph(ts, pl, pc, pr):
     text="Save Graph",
     command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, injectionPointXY, maxPointXY, minPointXY, lblScenarioText.cget("text"))
     )
-    saveGraphBtn.place(relx=.6, rely=0)
+    #saveGraphBtn.place(relx=.6, rely=0)
 
 # Function for editing the file's scenario
 def editScenario(e):
     if (e == 0):
         lblScenarioText.place_forget()
         txtScenario.delete("1.0", tk.END)
-        txtScenario.place(relx=.52, rely=.73)
+        txtScenario.place(relx=.12, rely=.25)
         text = lblScenarioText.cget("text")
         text = text.rstrip("\n")
         txtScenario.insert(tk.END, text)
         editScenarioBtn.place_forget()
-        saveScenarioBtn.place(relx=.67,rely=.73)
+        saveScenarioBtn.place(relx=.05,rely=.21)
     else:
         lblScenarioText.config(text=txtScenario.get("1.0", tk.END))
-        lblScenarioText.place(relx=.52, rely=.72)
+        lblScenarioText.place(relx=.12, rely=.25)
         txtScenario.place_forget()
         saveScenarioBtn.place_forget()
-        editScenarioBtn.place(relx=.67,rely=.73)
+        editScenarioBtn.place(relx=.05,rely=.21)
 
 # This class is for getting all the locally saved graphs and listing them
 class SavedGraphs:
@@ -676,7 +651,9 @@ class SavedGraphs:
 # Class for the confidence graphs
 class confidenceGraph:
     files, allDatas = [], []
-
+    figConf = None
+    axConf = None
+    canvasConf = None
     # Class GUI
     def menu(self):
         self.savedGUI = tk.Toplevel()
@@ -688,6 +665,17 @@ class confidenceGraph:
 
     # Graphs the confidence graph onto the class window
     def graph1(self, df_combined, savedGUI):
+        if self.figConf != None:
+            self.figConf = None
+            self.axConf = None
+            self.canvasConf.get_tk_widget().pack_forget()
+            self.canvasConf = None
+
+        if self.figConf == None:
+            self.figConf = plt.figure()
+            self.axConf = self.figConf.add_subplot()
+            self.canvasConf = FigureCanvasTkAgg(self.figConf, savedGUI)
+        
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
         
@@ -701,24 +689,20 @@ class confidenceGraph:
         df_grouped['rolling_mean'] = df_grouped['mean'].rolling(window_size, center=True).mean()
         df_grouped['lower'] = df_grouped['mean']-df_grouped['std']
         df_grouped['upper'] = df_grouped['mean']+df_grouped['std']
-        
-        figConf = plt.figure()
-        axConf = figConf.add_subplot()
-        canvasConf = FigureCanvasTkAgg(figConf, savedGUI)
-        canvasConf.get_tk_widget().pack()
 
         plt.title('95% Confidence')
         plt.xlabel('Normalised time')
         plt.ylabel('Pressure (mbar)')
 
-        axConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
+        self.axConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
         # separate plots for each file
         for filename in set(df_combined['filename']):
             file_data = df_combined[df_combined['filename'] == filename]
-            axConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
-        axConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
+            self.axConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
+        self.axConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
 
-        canvasConf.draw()
+        self.canvasConf.draw()
+        self.canvasConf.get_tk_widget().pack() 
 
     # Button for prompting the user to choose a folder
     def openGroupBtn(self, savedGUI):
@@ -741,7 +725,8 @@ class confidenceGraph:
                 df = pd.read_csv(filePath)
                 df['filename'] = filename
                 dfTemp.append(df)
-        self.graph1(pd.concat(dfTemp), savedGUI)
+        dataArr = pd.concat(dfTemp)
+        self.graph1(dataArr, savedGUI)
 
 # GUI elements and their placement
 gui = tk.Tk()
@@ -751,20 +736,16 @@ canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
 numbersOnly = gui.register(checkIfNum)
 
-lblScenario = tk.Label(gui, text="Scenario:", font=("Arial",14))
-lblScenarioText = tk.Label(gui, text="", font=("Arial",14))
-lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
-lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial",14))
-lblCustomPoints = tk.Label(gui, text="Custom points: ", font=("Arial", 14))
-txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
-txtStartTime = tk.Entry(gui)
-lblStartTime = tk.Label(gui, text="Start time:")
-txtStopTime = tk.Entry(gui)
-lblStartStopGuide = tk.Label(gui, text="Crop Graph between two custom points:")
+lblScenario = tk.Label(gui, text="Scenario:", font=("Arial bold",12))
+lblScenarioText = tk.Label(gui, text="", font=("Arial bold",12))
+lblFileName = tk.Label(gui, text="File Name: -", font=("Arial bold",12))
+lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial bold",12))
+lblCustomPoints = tk.Label(gui, text="ROI points: ", font=("Arial", 14))
+txtScenario = tk.Text(gui, width=20, height=2, font=("Arial bold",12))
+lblStartStopGuide = tk.Label(gui, text="Crop Graph between two ROI points:")
 lblStartStopID = tk.Label(gui, text="ID:")
 txtStartCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
 txtStopCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
-lblStopTime = tk.Label(gui, text="Stop time:")
 insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
 lblInsertText = tk.Label(gui, text="Pressure change [mbar]:")
 newGraphBtn = tk.Button(
@@ -782,26 +763,19 @@ confidenceGraphBtn = tk.Button(
     text="Confidence Graphs",
     command=lambda: confidenceGraph().menu()
 )
-updateGraphBtn = tk.Button(
-    gui, 
-    text="Update Graph",
-    command=lambda: [plt.close(), plot(readCSV(0), txtStartTime.get(), txtStopTime.get())]
-)
 editScenarioBtn = tk.Button(
     gui,
-    text="EDIT SCENARIO",
-    font=("Arial bold",12),
+    text="Edit Scenario",
     command=lambda: editScenario(0)
     )
 saveScenarioBtn = tk.Button(
     gui,
-    text="SAVE SCENARIO",
-    font=("Arial bold",12),
+    text="Save Scenario",
     command=lambda: editScenario(1)
 )
 saveAsCSVbtn = tk.Button(
     gui,
-    text="Save As CSV",
+    text="Save All Values in ROI points to CSV",
     command=lambda: exportToCSV()
 )
 createPointBtn = tk.Button(
@@ -825,13 +799,9 @@ customStartStopExportBtn = tk.Button(
     text="Export Cropped",
     command=lambda: exportCroppedCSV()
 )
-rax = plt.axes([0.79, 0.12, 0.2, 0.2])
-rax.set_visible(False)
-check = CheckButtons(rax, ("Hide P left", "Hide P center", "Hide P right", "Hide Acc Mag"), (False, False, False, False))
-check.on_clicked(GetVisibility)
-savedGraphsBtn.place(relx=.2,rely=0)
-confidenceGraphBtn.place(relx=.4,rely=0)
-newGraphBtn.place(relx= .1, rely= 0)
+#savedGraphsBtn.place(relx=.2,rely=0)
+confidenceGraphBtn.place(relx=.13,rely=.01)
+newGraphBtn.place(relx=.05, rely=.01)
 customPointList = ttk.Treeview(gui, column=("ID", "Name", "Time[s]"), show="headings", height=6)
 customPointList.column("ID", width=20)
 customPointList.heading("ID", text="ID")

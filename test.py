@@ -1,33 +1,35 @@
-import tkinter as tk
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+import tkinter as tk
 
-# create the Tkinter window
+# create a sample plot
+fig, ax = plt.subplots()
+line1, = ax.plot([1, 2, 3], [4, 5, 6], label='Line 1')
+line2, = ax.plot([1, 2, 3], [6, 5, 4], label='Line 2')
+
+# set the picker property for the Line2D objects
+line1.set_picker(True)
+line2.set_picker(True)
+
+# create a legend
+legend = ax.legend()
+
+# create a tkinter window and embed the plot in it
 root = tk.Tk()
-
-# create a Matplotlib figure and canvas
-fig = Figure()
-ax = fig.subplots()
-
-
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.draw()
-canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+canvas.get_tk_widget().pack()
 
-# function to clear the canvas and redraw the graph
-def redraw_graph():
-    # clear the canvas
-    canvas.get_tk_widget().delete("all")
-    
-    # do graphing here
-    # ...
-    ax.plot([1,2,3],[4,5,6])
-    # redraw the canvas
-    canvas.draw()
+# define a function to toggle plot visibility on legend click
+def on_legend_click(event):
+    artist = event.artist
+    if isinstance(artist, plt.Line2D):
+        visibility = not artist.get_visible()
+        artist.set_visible(visibility)
+        event.canvas.draw()
 
-# create a button to call the redraw_graph function
-button = tk.Button(root, text="Redraw Graph", command=redraw_graph)
-button.pack()
+# bind the legend click event to the function
+fig.canvas.mpl_connect('pick_event', on_legend_click)
 
-# start the Tkinter event loop
+# start the tkinter event loop
 root.mainloop()
