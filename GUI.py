@@ -18,7 +18,7 @@ from functools import partial
 fileName=""
 sampleRate = None
 customPointXY, customPlot = [], []
-injectionPointXY, maxPointXY, minPointXY = [], [], []
+injectionPointXY = []
 annIp, ipPlot = None, None
 # User Interface
 def GUI():
@@ -436,16 +436,10 @@ def graphOptions():
 def plotFromDB(table):
     graph.clear()
     tableName = table.rsplit(".",2)[0]
-    data, ipX, ipY, maxX, maxY, minX, minY, scenario = db.getTable(tableName)
+    data, ipX, ipY, scenario = db.getTable(tableName)
     if ipX:
         global injectionPointXY
         injectionPointXY = [ipX, ipY]
-    if maxX:
-        global maxPointXY
-        maxPointXY = [maxX, maxY]
-    if minX:
-        global minPointXY
-        minPointXY = [minX, minY]
     startTime = data[0][0]
     stopTime = data[0][len(data[0])-1]
     resetOnPullDB(tableName, scenario, startTime, stopTime)
@@ -491,11 +485,11 @@ def getSampleRate(headers):
     else:
         return 0
 
-# When a new file is opened all previously set values for points of interests are reset
+# When a new file is opened all previously set values for points of interest are reset
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ipPlot, injectionPointXY, maxPointXY, minPointXY, customPointXY, customPlot
-        injectionPointXY, maxPointXY, minPointXY = [], [], []
+        global annIp, ipPlot, injectionPointXY, customPointXY, customPlot
+        injectionPointXY = []
         annIp, ipPlot = None, None
         lblScenarioText.config(text="")
         for i in range(len(customPointXY)):
@@ -601,7 +595,7 @@ def saveGraph(ts, pl, pc, pr):
     saveGraphBtn = tk.Button(
     gui, 
     text="Save Graph",
-    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, injectionPointXY, maxPointXY, minPointXY, lblScenarioText.cget("text"))
+    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, injectionPointXY, lblScenarioText.cget("text"))
     )
     #saveGraphBtn.place(relx=.6, rely=0)
 
