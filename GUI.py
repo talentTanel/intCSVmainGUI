@@ -17,7 +17,7 @@ from functools import partial
 
 fileName=""
 sampleRate = None
-customPointXY, customPlot = [], []
+customPointXY, customPlot, allFiles = [], [], []
 injectionPointXY = []
 annIp, ipPlot = None, None
 # User Interface
@@ -429,6 +429,9 @@ def graphOptions():
     customStartStopResetBtn.place(relx=.155, rely=.745)
     customStartStopExportBtn.place(relx=.193, rely=.745)
 
+    nextGraphBtn.place(relx=.15,rely=.01)
+    previousGraphBtn.place(relx=.12,rely=.01)
+
     saveAsCSVbtn.place(relx=.05,rely=.8)
     canvas.draw()
 
@@ -458,17 +461,50 @@ def readCSV(e):
         global fileName
         path, fileName = filedialog.askopenfilename().rsplit("/",1)
         os.chdir(path)
-    file = open(fileName,"r")
-    data = list(csv.reader(file, delimiter=","))
+        getAllCSV()
+    data = readFile(fileName)
     global sampleRate
     sampleRate = getSampleRate(data[0])
-    file.close()
     if (e != 2): # Need headers for some exports
         data.pop(0) # data[0] is .CSV headers
     if (e == 1):
         resetLabels()
         resetOnNewFile(e)
     return data
+
+# Reads all data from open csv file and returns it
+def readFile(name):
+    file = open(name, "r")
+    data = list(csv.reader(file, delimiter=","))
+    file.close()
+    return data
+
+# Gets all .CSV files in a folder for further use in easily changing to next/previous file
+def getAllCSV():
+    global allFiles
+    allFiles = glob.glob("*.{}".format("csv"))
+
+# Changes current file to the next/previous file in folder
+def changeFile(event):
+    global fileName
+    if event == "next":
+        for i in range(len(allFiles)-1):
+            if (fileName == allFiles[i]) and i != len(allFiles)-1:
+                fileName = allFiles[i+1]
+                data = readFile(fileName)
+                break
+    if event == "prev":
+        for i in range(len(allFiles)):
+            if (fileName == allFiles[i]) and i != 0: 
+                fileName = allFiles[i-1]
+                data = readFile(fileName)
+                break
+    try:
+        data.pop(0)
+        plt.close()
+        plot(data, "None", "None")
+    except:
+        None
 
 # Gets the sample rate of each opened file, needed to know header element locations
 def getSampleRate(headers):
@@ -763,6 +799,16 @@ newGraphBtn = tk.Button(
     text="New Graph", 
     command=lambda: [plt.close(), plot(readCSV(1), "None", "None")]
     )
+nextGraphBtn = tk.Button(
+    gui,
+    text="Next",
+    command=lambda: changeFile("next")
+)
+previousGraphBtn = tk.Button(
+    gui,
+    text="Prev.",
+    command=lambda: changeFile("prev")
+)
 savedGraphsBtn = tk.Button(
     gui, 
     text="Show saved graphs", 
@@ -810,7 +856,7 @@ customStartStopExportBtn = tk.Button(
     command=lambda: exportCroppedCSV()
 )
 #savedGraphsBtn.place(relx=.2,rely=0)
-confidenceGraphBtn.place(relx=.13,rely=.01)
+confidenceGraphBtn.place(relx=.2,rely=.01)
 newGraphBtn.place(relx=.05, rely=.01)
 customPointList = ttk.Treeview(gui, column=("ID", "Name", "Time[s]"), show="headings", height=6)
 customPointList.column("ID", width=20)
