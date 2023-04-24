@@ -51,6 +51,7 @@ def plot(graphData, startTime, stopTime):
         lined[leg] = orig
     fig.canvas.mpl_connect('pick_event', onClickLegend)
 
+    graph.set_title(fileName)
     graph.set_xlabel("Time [s]")
     graph.set_ylabel("Pressure [mbar]")
     canvas.mpl_connect('button_press_event', onRightClick)
