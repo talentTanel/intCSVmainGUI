@@ -14,6 +14,7 @@ import numpy as np
 import seaborn as sns
 from math import sqrt
 from functools import partial
+import gc
 
 fileName=""
 sampleRate = None
@@ -59,6 +60,7 @@ def plot(graphData, startTime, stopTime):
     displayCustomPlot()
     saveGraph(ts, pl, pc, pr)
     graphOptions()
+    gc.collect()
     
 # Handles clicks on legend, hides/unhides a plot
 def onClickLegend(event):
@@ -260,7 +262,7 @@ def createCustomPoint():
     addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listCustomPoint(txtId.get(), txtName.get(), labels))
     addBtn.grid(row=2, column=1, pady=25)
 
-# Checks if the inputted key is a number or not
+# Checks if the inputted key is a number or not, used for setting an ID for ROI points
 def checkIfNum(entry):
     if str.isdigit(entry) or entry == "":
         return True
@@ -694,31 +696,23 @@ class SavedGraphs:
 
 # Class for the confidence graphs
 class confidenceGraph:
-    files, allDatas = [], []
-    figConf = None
-    axConf = None
-    canvasConf = None
     # Class GUI
     def menu(self):
-        self.savedGUI = tk.Toplevel()
-        self.savedGUI.geometry("800x800")
-        self.savedGUI.title("Saved Graphs")
-        self.savedGUI.resizable(False,False)
-        self.openGroupBtn(self.savedGUI)
-        self.savedGUI.mainloop()
+        confGUI = tk.Toplevel()
+        confGUI.geometry("800x800")
+        confGUI.title("Confidence Graph")
+        confGUI.resizable(False,False)
+
+        self.figConf, self.graphConf = plt.subplots()
+        self.canvasConf = FigureCanvasTkAgg(self.figConf, confGUI)
+        self.canvasConf.get_tk_widget().pack()
+
+        self.openGroupBtn(confGUI)
+        confGUI.mainloop()
 
     # Graphs the confidence graph onto the class window
-    def graph1(self, df_combined, savedGUI):
-        if self.figConf != None:
-            self.figConf = None
-            self.axConf = None
-            self.canvasConf.get_tk_widget().pack_forget()
-            self.canvasConf = None
-
-        if self.figConf == None:
-            self.figConf = plt.figure()
-            self.axConf = self.figConf.add_subplot()
-            self.canvasConf = FigureCanvasTkAgg(self.figConf, savedGUI)
+    def graph1(self, df_combined):
+        self.graphConf.clear()
         
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
@@ -734,31 +728,30 @@ class confidenceGraph:
         df_grouped['lower'] = df_grouped['mean']-df_grouped['std']
         df_grouped['upper'] = df_grouped['mean']+df_grouped['std']
 
-        plt.title('95% Confidence')
-        plt.xlabel('Normalised time')
-        plt.ylabel('Pressure (mbar)')
+        self.graphConf.set_xlabel('Normalised time')
+        self.graphConf.set_ylabel('Pressure (mbar)')
 
-        self.axConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
+        self.graphConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
         # separate plots for each file
         for filename in set(df_combined['filename']):
             file_data = df_combined[df_combined['filename'] == filename]
-            self.axConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
-        self.axConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
+            self.graphConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
+        self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
 
         self.canvasConf.draw()
-        self.canvasConf.get_tk_widget().pack() 
+        gc.collect()
 
     # Button for prompting the user to choose a folder
-    def openGroupBtn(self, savedGUI):
+    def openGroupBtn(self, confGUI):
         openBtn = tk.Button(
-            savedGUI,
+            confGUI,
             text="Select Folder with Grouped CSVs",
-            command=lambda: self.readFolder(savedGUI)
+            command=lambda: self.readFolder()
         )
         openBtn.pack()
 
     # 1. Prompts the user to select a folder with a group of CSV files and gets data from all possible CSV files in folder
-    def readFolder(self, savedGUI):
+    def readFolder(self):
         prmt = promptlib.Files()
         dir = prmt.dir()
         os.chdir(dir)
@@ -770,7 +763,7 @@ class confidenceGraph:
                 df['filename'] = filename
                 dfTemp.append(df)
         dataArr = pd.concat(dfTemp)
-        self.graph1(dataArr, savedGUI)
+        self.graph1(dataArr)
 
 # GUI elements and their placement
 gui = tk.Tk()
