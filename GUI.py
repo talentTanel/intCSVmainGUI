@@ -18,9 +18,9 @@ import gc
 
 fileName=""
 sampleRate = None
-customPointXY, customPlot, allFiles = [], [], []
+customPointXY, customPlot, allFiles, lines = [], [], [], []
 injectionPointXY = []
-annIp, ipPlot = None, None
+ipt = None
 # User Interface
 def GUI():
     gui.geometry("1280x750")
@@ -31,7 +31,7 @@ def GUI():
 # Graphs a .CSV file
 def plot(graphData, startTime, stopTime):
     graph.clear()
-    global lines, lined
+    global lined, lines
     ts, pl, pc, pr, mag = [], [], [], [], []
     ts, pl, pc, pr, mag = appendElements(ts, pl, pc, pr, mag, graphData)
     ts, pl, pc, pr, mag = startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime)
@@ -42,14 +42,7 @@ def plot(graphData, startTime, stopTime):
     lines = [lPlot, cPlot, rPlot, mPlot]
     lined = {}
     injectionPointDef(pl, ts)
-
-    legend = graph.legend(loc="upper right")
-    for leg, orig in zip(legend.get_lines(), lines): # Make all plots in legend clickable
-        # https://matplotlib.org/stable/gallery/event_handling/legend_picking.html#sphx-glr-gallery-event-handling-legend-picking-py
-        leg.set_picker(True)
-        leg.set_pickradius(5)
-        lined[leg] = orig
-    fig.canvas.mpl_connect('pick_event', onClickLegend)
+    setLegend()
 
     graph.set_title(fileName)
     graph.set_xlabel("Time [s]")
@@ -62,7 +55,19 @@ def plot(graphData, startTime, stopTime):
     saveGraph(ts, pl, pc, pr)
     graphOptions()
     gc.collect()
-    
+
+# Creates the legend for graph
+def setLegend():
+    global lined
+    lined = {}
+    legend = graph.legend(loc="upper right")
+    for leg, orig in zip(legend.get_lines(), lines): # Make all plots in legend clickable
+        # https://matplotlib.org/stable/gallery/event_handling/legend_picking.html#sphx-glr-gallery-event-handling-legend-picking-py
+        leg.set_picker(True)
+        leg.set_pickradius(5)
+        lined[leg] = orig
+    fig.canvas.mpl_connect('pick_event', onClickLegend)
+
 # Handles clicks on legend, hides/unhides a plot
 def onClickLegend(event):
     legend = event.artist
@@ -527,9 +532,8 @@ def getSampleRate(headers):
 # When a new file is opened all previously set values for points of interest are reset
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ipPlot, injectionPointXY, customPointXY, customPlot
+        global injectionPointXY, customPointXY, customPlot
         injectionPointXY = []
-        annIp, ipPlot = None, None
         lblScenarioText.config(text="")
         for i in range(len(customPointXY)):
             customPointXY[i] = [None, None, customPointXY[i][2]]
@@ -565,46 +569,38 @@ def displayInjectionPoint(ts):
         if ts == 0:
             ts = []
             ts.append(50) # placeholder number, need to think of a better way to either replace ts[0] or some other method
-        global annIp, ipPlot
-        if annIp: annIp.remove(), ipPlot.remove() # clears previous injection point from graph
-        ipt = graph.plot(injectionPointXY[0],injectionPointXY[1], "or", label="Injection Point")
-        ipPlot = ipt.pop(0)
-        annIp = graph.annotate("Injection Point", xy=(injectionPointXY[0], injectionPointXY[1]), xytext=((ts[0]+injectionPointXY[0])/2.5,injectionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        global ipt
+        if ipt: ipt.remove() # clears previous injection point from graph
+        ipt, = graph.plot(injectionPointXY[0],injectionPointXY[1], "oc", label="Injection Point")
+        if len(lines) == 4: lines.append(ipt)
+        else: lines[len(lines)-1] = ipt
+        setLegend()
         canvas.draw()
         lblInjectionPoint.config(text="Injection Point: {} [s]".format(injectionPointXY[0]))
 
 # Gets injection point from database if it exists
 def injectionPointFromDB(tsD, ipX, ipY):
     if ipX:
-        global annIp, ipPlot
-        ipt = graph.plot(ipX, ipY, "or", label="Injection Point")
-        ipPlot = ipt.pop(0)
-        annIp = graph.annotate("Injection Point", xy=(ipX, ipY), xytext=((tsD[0]+ipX)/2.5,ipY-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+        global ipt
+        ipt, = graph.plot(ipX, ipY, "oc", label="Injection Point")
         canvas.draw()
 
 # Suggests an injection point automatically by comparing a pressure to it's following pressure
 def getInjectionPointAuto(pl, ts):
     for i in range(len(pl)-1):
         if abs(pl[i] - pl[i+1]) > int(insertSlider.get()):
-                global injectionPointXY, annIp, ipPlot
-                if annIp: annIp.remove(), ipPlot.remove()
+                global injectionPointXY, ipt, lines
+                if ipt: ipt.remove()
                 tsIn = ts[i]
                 plIn = pl[i]
-                ipt = graph.plot(tsIn,plIn, "or", label="Injection Point")
-                ipPlot = ipt.pop(0)
-                annIp = graph.annotate("Injection Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
+                ipt, = graph.plot(tsIn,plIn, "oc", label="Injection Point")
+                if len(lines) == 4: lines.append(ipt)
+                else: lines[len(lines)-1] = ipt
+                setLegend()
                 canvas.draw()
                 injectionPointXY = [tsIn, plIn]
                 lblInjectionPoint.config(text="Injection Point: {} [s]".format(tsIn))
                 break
-
-# Toggles the injection point annotation visibility on graph
-def toggleInjectionVisibility():
-    global annIp
-    if annIp:
-        visible = annIp.get_visible()
-        annIp.set_visible(not visible)
-        canvas.draw()
         
 # Suggests an injection point when a specific button is pressed
 def injectionPointBtn(pl, ts):
@@ -613,13 +609,7 @@ def injectionPointBtn(pl, ts):
         text="Suggest injection point",
         command=lambda: getInjectionPointAuto(pl, ts)
     )
-    insertAutoToggle = tk.Button(
-        gui,
-        text="Toggle Visibility",
-        command=lambda: toggleInjectionVisibility()
-    )
     insertAutoBtn.place(relx=.05,rely=.08)
-    insertAutoToggle.place(relx=.17, rely=.08)
     insertSlider.place(relx=.05, rely=.14)
     insertSlider.set(2)
     lblInsertText.place(relx=.05,rely=.12)
