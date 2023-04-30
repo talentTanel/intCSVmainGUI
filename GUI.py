@@ -248,18 +248,30 @@ def displayCustomPlot():
 # Reads the "points.json" file for ROI points and automatically inserts them to the visible list
 def readCustomJSON():
     global customPointXY
-    with open(__file__.rsplit("GUI.py",1)[0]+"\points.json", "r") as file:
-        data = json.load(file)
+    data = readJSON()
     for point in data:
         customPointXY.append([None, None, point['id']])
         customPlot.append([None, None, point['id']])
         customPointList.insert("", "end", text=point['id'], values=(point['id'], point['name'], "-"))
 
+# Saves a newly made ROI point to the "points.json" file
+def saveCustomToJSON(id, name, comment):
+    newPoint = {"id": id, "name": name, "comment": comment}
+    data = readJSON()
+    data.append(newPoint)
+    with open(__file__.rsplit("GUI.py",1)[0]+"\points.json", "w") as file:    
+        json.dump(data, file)
+
+# Returns the data from "points.json" file
+def readJSON():
+    with open(__file__.rsplit("GUI.py",1)[0]+"\points.json", "r") as file:
+        return json.load(file)
+
 # Window for creating new custom points
 def createCustomPoint():
     crtPoint = tk.Toplevel(gui)
     crtPoint.title("Add new point")
-    crtPoint.geometry("300x200")
+    crtPoint.geometry("300x250")
     num = crtPoint.register(checkIfNum)
 
     lblId = tk.Label(crtPoint, text="ID (number):")
@@ -267,18 +279,23 @@ def createCustomPoint():
     txtId = tk.Entry(crtPoint, validate='all', validatecommand=(num, '%P'))
     txtId.grid(row=0, column=1)
 
-    lblName = tk.Label(crtPoint, text="Name (text):")
+    lblName = tk.Label(crtPoint, text="Name (text)*:")
     lblName.grid(row=1, column=0)
     txtName = tk.Entry(crtPoint)
     txtName.grid(row=1, column=1)
+
+    lblComment = tk.Label(crtPoint, text="Comment (text):")
+    lblComment.grid(row=2, column=0)
+    txtComment = tk.Entry(crtPoint)
+    txtComment.grid(row=2, column=1, pady=25)
 
     lblError = tk.Label(crtPoint, text="Name cannot be empty", fg="red", font=12)
     lblCreated = tk.Label(crtPoint, text="Point created", fg="green", font=12)
     labels = [lblError, lblCreated]
 
-    crtPoint.bind('<Return>', lambda x: listCustomPoint(txtId.get(), txtName.get(), labels))
-    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listCustomPoint(txtId.get(), txtName.get(), labels))
-    addBtn.grid(row=2, column=1, pady=25)
+    crtPoint.bind('<Return>', lambda x: listCustomPoint(txtId.get(), txtName.get(), txtComment.get(), labels)) # Can use the Enter key
+    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listCustomPoint(txtId.get(), txtName.get(), txtComment.get(), labels))
+    addBtn.grid(row=3, column=1)
 
 # Checks if the inputted key is a number or not, used for setting an ID for ROI points
 def checkIfNum(entry):
@@ -288,7 +305,7 @@ def checkIfNum(entry):
         return False
     
 # Checks if everything is correct in the custom point creation inputs, also updates values in list
-def listCustomPoint(id, name, labels):
+def listCustomPoint(id, name, comment, labels):
     if (name == ""): 
         labels[0].place(relx=.35,rely=.8)
         labels[1].place_forget()
@@ -314,6 +331,7 @@ def listCustomPoint(id, name, labels):
                 customPointList.insert("", "end", text=id, values=(id, name, "-"))
                 sortCustomList()
         saveCustomPoint(id)
+        saveCustomToJSON(id, name, comment)
 
 # Sorts the items in the treeview list by ID
 def sortCustomList():
