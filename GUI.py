@@ -249,6 +249,7 @@ def displayCustomPlot():
 def readCustomJSON():
     global customPointXY
     data = readJSON()
+    customPointList.delete(*customPointList.get_children())
     for point in data:
         customPointXY.append([None, None, point['id']])
         customPlot.append([None, None, point['id']])
@@ -538,12 +539,13 @@ def changeFile(event):
                 fileName = allFiles[i-1]
                 data = readFile(fileName)
                 break
-    try:
-        data.pop(0)
-        plt.close()
-        plot(data, "None", "None")
-    except:
-        None
+    #try:
+    resetOnNewFile(1)
+    data.pop(0)
+    plt.close()
+    plot(data, "None", "None")
+    #except:
+    #    None
 
 # Gets the sample rate of each opened file, needed to know header element locations
 def getSampleRate(headers):
@@ -566,6 +568,7 @@ def resetOnNewFile(e):
         global injectionPointXY, customPointXY, customPlot
         injectionPointXY = []
         lblScenarioText.config(text="")
+        lblInjectionPoint.config(text="Injection Point: -")
         for i in range(len(customPointXY)):
             customPointXY[i] = [None, None, customPointXY[i][2]]
             customPlot[i] = [None, None, customPlot[i][2]]
@@ -855,13 +858,6 @@ createPointBtn = tk.Button(
     font=("Arial",12),
     command=lambda: createCustomPoint()
 )
-tempCustomBTN = tk.Button(
-    gui,
-    text="TEMP",
-    font=("Arial",12),
-    command=lambda: readCustomJSON()
-)
-tempCustomBTN.pack()
 customStartStopBtn = tk.Button(
     gui,
     text="Crop",
