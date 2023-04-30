@@ -15,6 +15,7 @@ import seaborn as sns
 from math import sqrt
 from functools import partial
 import gc
+import json
 
 fileName=""
 sampleRate = None
@@ -224,6 +225,7 @@ def createCustomPlot(id, index):
     customPlot[index] = [None, None, id]
     customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
     customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=(customPointXY[index][0], customPointXY[index][1]), color="green")
+    setLegend()
     canvas.draw()
     listChildren = customPointList.get_children()
     for child in listChildren:
@@ -242,6 +244,16 @@ def displayCustomPlot():
             customPlot[i][0] = graph.plot(customPointXY[i][0], customPointXY[i][1], "or", label=customPlot[i][2]).pop(0)
             customPlot[i][1] = graph.annotate(customPlot[i][2], xy=(customPointXY[i][0], customPointXY[i][1]), xytext=(customPointXY[i][0], customPointXY[i][1]), color="green")
             canvas.draw()
+
+# Reads the "points.json" file for ROI points and automatically inserts them to the visible list
+def readCustomJSON():
+    global customPointXY
+    with open(__file__.rsplit("GUI.py",1)[0]+"\points.json", "r") as file:
+        data = json.load(file)
+    for point in data:
+        customPointXY.append([None, None, point['id']])
+        customPlot.append([None, None, point['id']])
+        customPointList.insert("", "end", text=point['id'], values=(point['id'], point['name'], "-"))
 
 # Window for creating new custom points
 def createCustomPoint():
@@ -275,7 +287,7 @@ def checkIfNum(entry):
     else:
         return False
     
-# Checks if everything is correct in the custom point creation inputs and gives feedback, also updates values in list
+# Checks if everything is correct in the custom point creation inputs, also updates values in list
 def listCustomPoint(id, name, labels):
     if (name == ""): 
         labels[0].place(relx=.35,rely=.8)
@@ -470,6 +482,7 @@ def readCSV(e):
         path, fileName = filedialog.askopenfilename().rsplit("/",1)
         os.chdir(path)
         getAllCSV()
+        readCustomJSON()
     data = readFile(fileName)
     global sampleRate
     sampleRate = getSampleRate(data[0])
@@ -824,6 +837,13 @@ createPointBtn = tk.Button(
     font=("Arial",12),
     command=lambda: createCustomPoint()
 )
+tempCustomBTN = tk.Button(
+    gui,
+    text="TEMP",
+    font=("Arial",12),
+    command=lambda: readCustomJSON()
+)
+tempCustomBTN.pack()
 customStartStopBtn = tk.Button(
     gui,
     text="Crop",
