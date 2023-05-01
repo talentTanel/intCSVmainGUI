@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from matplotlib.widgets import CheckButtons
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import csv
 import tkinter as tk
@@ -11,7 +10,6 @@ import db
 import sys
 import pandas as pd
 import numpy as np
-import seaborn as sns
 from math import sqrt
 from functools import partial
 import gc
@@ -26,7 +24,6 @@ ipt = None
 def GUI():
     gui.geometry("1280x750")
     gui.bind("<Control-q>", sys.exit)
-    #sns.set_theme(context='paper') // Maybe something for the future to change themes?
     gui.mainloop()
 
 # Graphs a .CSV file
@@ -724,16 +721,20 @@ class confidenceGraph:
     # Class GUI
     def menu(self):
         self.confGUI = tk.Toplevel()
-        self.confGUI.geometry("800x800")
+        self.confGUI.geometry("1280x850")
         self.confGUI.title("Confidence Graph")
-        self.confGUI.resizable(False,False)
-        self.confGUI.grab_set()
+        self.confGUI.grab_set() # Force the focus to stay on confidence graph window
 
-        self.figConf, self.graphConf = plt.subplots()
+        self.figConf, self.graphConf = plt.subplots(figsize=(11,7.5))
         self.canvasConf = FigureCanvasTkAgg(self.figConf, self.confGUI)
+        self.toolbarConf = NavigationToolbar2Tk(self.canvasConf, self.confGUI, pack_toolbar=False)
+        self.toolbarConf.config(background="white")
+        self.toolbarConf._message_label.config(background="white", highlightbackground="white")
+
+        self.toolbarConf.place(relx=0.5,rely=0.01)
         self.canvasConf.get_tk_widget().pack()
 
-        self.openGroupBtn(self.confGUI)
+        self.Buttons()
         self.confGUI.mainloop()
 
     # Graphs the confidence graph onto the class window
@@ -773,16 +774,6 @@ class confidenceGraph:
 
     # Swaps which plot is visible on the graph - either mean or median
     def meanOrMedian(self):
-        self.switchBtn = tk.Button(
-            self.confGUI,
-            text="Median",
-            command=lambda: [
-                self.meanPlot.set_visible(not self.meanPlot.get_visible()),
-                self.medianPlot.set_visible(not self.medianPlot.get_visible()),
-                self.canvasConf.draw(),
-                self.swapText()
-            ]
-        )
         self.switchBtn.pack_forget()
         self.switchBtn.pack()
 
@@ -793,14 +784,24 @@ class confidenceGraph:
         else:
             self.switchBtn.config(text="Median")
 
-    # Button for prompting the user to choose a folder
-    def openGroupBtn(self, confGUI):
+    # Defines the buttons used in confidence graph window
+    def Buttons(self):
         openBtn = tk.Button(
-            confGUI,
+            self.confGUI,
             text="Select Folder with Grouped CSVs",
             command=lambda: self.readFolder()
         )
         openBtn.pack(pady=10)
+        self.switchBtn = tk.Button(
+            self.confGUI,
+            text=" Mean ",
+            command=lambda: [
+                self.meanPlot.set_visible(not self.meanPlot.get_visible()),
+                self.medianPlot.set_visible(not self.medianPlot.get_visible()),
+                self.canvasConf.draw(),
+                self.swapText()
+            ]
+        )
 
     # 1. Prompts the user to select a folder with a group of CSV files and gets data from all possible CSV files in folder
     def readFolder(self):
