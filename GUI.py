@@ -223,7 +223,7 @@ def createCustomPlot(id, index):
     global customPlot
     if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
     customPlot[index] = [None, None, id]
-    customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
+    customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or").pop(0)
     customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=(customPointXY[index][0], customPointXY[index][1]), color="green")
     setLegend()
     canvas.draw()
@@ -241,7 +241,7 @@ def displayCustomPlot():
         if(customPlot[i][0] != None): 
             customPlot[i][0].remove(), customPlot[i][1].remove()
             customPlot[i] = [None, None, customPlot[i][2]]
-            customPlot[i][0] = graph.plot(customPointXY[i][0], customPointXY[i][1], "or", label=customPlot[i][2]).pop(0)
+            customPlot[i][0] = graph.plot(customPointXY[i][0], customPointXY[i][1], "or").pop(0)
             customPlot[i][1] = graph.annotate(customPlot[i][2], xy=(customPointXY[i][0], customPointXY[i][1]), xytext=(customPointXY[i][0], customPointXY[i][1]), color="green")
             canvas.draw()
 
@@ -539,13 +539,13 @@ def changeFile(event):
                 fileName = allFiles[i-1]
                 data = readFile(fileName)
                 break
-    #try:
-    resetOnNewFile(1)
-    data.pop(0)
-    plt.close()
-    plot(data, "None", "None")
-    #except:
-    #    None
+    try:
+        resetOnNewFile(1)
+        data.pop(0)
+        plt.close()
+        plot(data, "None", "None")
+    except:
+        None
 
 # Gets the sample rate of each opened file, needed to know header element locations
 def getSampleRate(headers):
@@ -723,17 +723,18 @@ class SavedGraphs:
 class confidenceGraph:
     # Class GUI
     def menu(self):
-        confGUI = tk.Toplevel()
-        confGUI.geometry("800x800")
-        confGUI.title("Confidence Graph")
-        confGUI.resizable(False,False)
+        self.confGUI = tk.Toplevel()
+        self.confGUI.geometry("800x800")
+        self.confGUI.title("Confidence Graph")
+        self.confGUI.resizable(False,False)
+        self.confGUI.grab_set()
 
         self.figConf, self.graphConf = plt.subplots()
-        self.canvasConf = FigureCanvasTkAgg(self.figConf, confGUI)
+        self.canvasConf = FigureCanvasTkAgg(self.figConf, self.confGUI)
         self.canvasConf.get_tk_widget().pack()
 
-        self.openGroupBtn(confGUI)
-        confGUI.mainloop()
+        self.openGroupBtn(self.confGUI)
+        self.confGUI.mainloop()
 
     # Graphs the confidence graph onto the class window
     def graph1(self, df_combined):
@@ -742,7 +743,7 @@ class confidenceGraph:
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
         
-        df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std']) # get mean & standard deviation
+        df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std', 'median']) # get mean & standard deviation
         df_grouped.reset_index(inplace=True)  # reset the index to make Time [ms] a column again
         median_std = df_grouped['std'].median()
         df_grouped['std'].fillna(median_std, inplace=True) # changing NaN std values to median std
@@ -750,6 +751,7 @@ class confidenceGraph:
         # Smoothing out the mean into a rolling mean. Otherwise it looks bad on graph
         window_size = 100
         df_grouped['rolling_mean'] = df_grouped['mean'].rolling(window_size, center=True).mean()
+        df_grouped['rolling_median'] = df_grouped['median'].rolling(window_size, center=True).median()
         df_grouped['lower'] = df_grouped['mean']-df_grouped['std']
         df_grouped['upper'] = df_grouped['mean']+df_grouped['std']
 
@@ -761,10 +763,35 @@ class confidenceGraph:
         for filename in set(df_combined['filename']):
             file_data = df_combined[df_combined['filename'] == filename]
             self.graphConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
-        self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
+        self.meanPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
+        self.medianPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_median'], color='r', alpha=1, linewidth=5)
+        self.medianPlot.set_visible(not self.medianPlot.get_visible()) # by default show mean not median
 
         self.canvasConf.draw()
+        self.meanOrMedian()
         gc.collect()
+
+    # Swaps which plot is visible on the graph - either mean or median
+    def meanOrMedian(self):
+        self.switchBtn = tk.Button(
+            self.confGUI,
+            text="Median",
+            command=lambda: [
+                self.meanPlot.set_visible(not self.meanPlot.get_visible()),
+                self.medianPlot.set_visible(not self.medianPlot.get_visible()),
+                self.canvasConf.draw(),
+                self.swapText()
+            ]
+        )
+        self.switchBtn.pack_forget()
+        self.switchBtn.pack()
+
+    # Swaps the text on button to represent which is visible currently on graph
+    def swapText(self):
+        if self.switchBtn['text'] == "Median":
+            self.switchBtn.config(text=" Mean ")
+        else:
+            self.switchBtn.config(text="Median")
 
     # Button for prompting the user to choose a folder
     def openGroupBtn(self, confGUI):
@@ -773,7 +800,7 @@ class confidenceGraph:
             text="Select Folder with Grouped CSVs",
             command=lambda: self.readFolder()
         )
-        openBtn.pack()
+        openBtn.pack(pady=10)
 
     # 1. Prompts the user to select a folder with a group of CSV files and gets data from all possible CSV files in folder
     def readFolder(self):
