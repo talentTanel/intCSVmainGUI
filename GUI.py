@@ -14,6 +14,7 @@ from math import sqrt
 from functools import partial
 import gc
 import json
+from scipy import interpolate
 
 fileName=""
 sampleRate = None
@@ -151,7 +152,7 @@ def onRightClick(event):
             useLabel = "{} - {}".format(tempValues[0],tempValues[1])
             menu.add_command(label=useLabel, command= partialCustom)
         menu.add_separator()
-        menu.add_command(label="Cancel", command=lambda: setCustomPoint(event, 1))
+        menu.add_command(label="Cancel")
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
 
@@ -744,6 +745,15 @@ class confidenceGraph:
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
         
+        normTs = df_combined['Time [ms]'] # is this correct? Don't know.
+        pressure = df_combined['PL [hPa]']
+        f = interpolate.interp1d(normTs, pressure)
+
+        tsNew = np.arange(0, 1, 1/1000) # 1000 should be a variable that the user can choose
+        pressureNew = f(tsNew)
+
+        self.graphConf.plot(tsNew, pressureNew, "r")
+
         df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std', 'median']) # get mean & standard deviation
         df_grouped.reset_index(inplace=True)  # reset the index to make Time [ms] a column again
         median_std = df_grouped['std'].median()
@@ -759,13 +769,13 @@ class confidenceGraph:
         self.graphConf.set_xlabel('Normalised time')
         self.graphConf.set_ylabel('Pressure (mbar)')
 
-        self.graphConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='red', alpha=0.2)
+        self.graphConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='b', alpha=0.2)
         # separate plots for each file
         for filename in set(df_combined['filename']):
             file_data = df_combined[df_combined['filename'] == filename]
             self.graphConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
-        self.meanPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='r', alpha=1, linewidth=5)
-        self.medianPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_median'], color='r', alpha=1, linewidth=5)
+        self.meanPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='b', alpha=1, linewidth=5)
+        self.medianPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_median'], color='b', alpha=1, linewidth=5)
         self.medianPlot.set_visible(not self.medianPlot.get_visible()) # by default show mean not median
 
         self.canvasConf.draw()
