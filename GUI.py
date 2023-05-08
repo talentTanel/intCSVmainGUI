@@ -296,7 +296,7 @@ def createCustomPoint():
     addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listCustomPoint(txtId.get(), txtName.get(), txtComment.get(), labels))
     addBtn.grid(row=3, column=1)
 
-# Checks if the inputted key is a number or not, used for setting an ID for ROI points
+# Checks if the inputted key is a number or not
 def checkIfNum(entry):
     if str.isdigit(entry) or entry == "":
         return True
@@ -741,22 +741,21 @@ class confidenceGraph:
     # Graphs the confidence graph onto the class window
     def graph1(self, df_combined):
         self.graphConf.clear()
-        
+        self.setResolution()
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
+        tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # 1000 should be a variable that the user can choose
 
-        tsNew = np.arange(0, 1, 1/1000) # 1000 should be a variable that the user can choose
-        #pressureNew = f(tsNew)
         for filename in set(df_combined['filename']): # Normalised time graphing one file dataset at a time
             file_data = df_combined[df_combined['filename'] == filename]
 
             f = interpolate.interp1d(file_data['Time [ms]'], file_data['PL [hPa]'])
             try:
-                onePressureNew = f(tsNew)
+                onePressureNew = f(tsNormalised)
             except ValueError:
-                print("A value in x_new is above the interpolation range.")
+                self.lblErr.place(relx=.65, rely=.95)
                 break
-            self.graphConf.plot(tsNew, onePressureNew, color="gray", linewidth=0.5)
+            self.graphConf.plot(tsNormalised, onePressureNew, color="gray", linewidth=0.5)
             
         df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std', 'median']) # get mean & standard deviation
         df_grouped.reset_index(inplace=True)  # reset the index to make Time [ms] a column again
@@ -829,9 +828,26 @@ class confidenceGraph:
                 df = pd.read_csv(filePath)
                 df['filename'] = filename
                 dfTemp.append(df)
-        dataArr = pd.concat(dfTemp)
-        self.graph1(dataArr)
+        self.dataArr = pd.concat(dfTemp)
+        self.graph1(self.dataArr)
 
+    # Makes a textbox where the user can set desired resolution? for confidence graph
+    def setResolution(self):
+        num = self.confGUI.register(checkIfNum)
+
+        try: self.txtRes.winfo_exists() # if it doesn't exist then this will throw an error prompting the code to create it in except:
+        except: 
+            self.txtRes = tk.Entry(self.confGUI, validate='all', validatecommand=(num, '%P'))
+            self.txtRes.place(relx=.65, rely=.9)
+            lblRes = tk.Label(self.confGUI, text="Resolution?:")
+            lblRes.place(relx=.59, rely=.9)
+            btnRedraw = tk.Button(self.confGUI, text="Redraw", command=lambda: self.graph1(self.dataArr))
+            btnRedraw.place(relx=.75, rely=.9)
+            self.lblErr = tk.Label(self.confGUI, text="Lower the resolution", fg="red")
+        if self.txtRes.get() == "":
+            self.txtRes.insert(tk.END, "1000")   
+        self.lblErr.place_forget()
+        
 # GUI elements and their placement
 gui = tk.Tk()
 fig, graph = plt.subplots(figsize=(9,7.6))
