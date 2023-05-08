@@ -744,16 +744,20 @@ class confidenceGraph:
         
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
-        
-        normTs = df_combined['Time [ms]'] # is this correct? Don't know.
-        pressure = df_combined['PL [hPa]']
-        f = interpolate.interp1d(normTs, pressure)
 
         tsNew = np.arange(0, 1, 1/1000) # 1000 should be a variable that the user can choose
-        pressureNew = f(tsNew)
+        #pressureNew = f(tsNew)
+        for filename in set(df_combined['filename']): # Normalised time graphing one file dataset at a time
+            file_data = df_combined[df_combined['filename'] == filename]
 
-        self.graphConf.plot(tsNew, pressureNew, "r")
-
+            f = interpolate.interp1d(file_data['Time [ms]'], file_data['PL [hPa]'])
+            try:
+                onePressureNew = f(tsNew)
+            except ValueError:
+                print("A value in x_new is above the interpolation range.")
+                break
+            self.graphConf.plot(tsNew, onePressureNew, color="gray", linewidth=0.5)
+            
         df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std', 'median']) # get mean & standard deviation
         df_grouped.reset_index(inplace=True)  # reset the index to make Time [ms] a column again
         median_std = df_grouped['std'].median()
@@ -771,9 +775,9 @@ class confidenceGraph:
 
         self.graphConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='b', alpha=0.2)
         # separate plots for each file
-        for filename in set(df_combined['filename']):
+        """ for filename in set(df_combined['filename']):
             file_data = df_combined[df_combined['filename'] == filename]
-            self.graphConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5)
+            self.graphConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5) """
         self.meanPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='b', alpha=1, linewidth=5)
         self.medianPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_median'], color='b', alpha=1, linewidth=5)
         self.medianPlot.set_visible(not self.medianPlot.get_visible()) # by default show mean not median
