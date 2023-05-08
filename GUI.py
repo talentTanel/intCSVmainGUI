@@ -744,7 +744,30 @@ class confidenceGraph:
         self.setResolution()
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
-        tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # 1000 should be a variable that the user can choose
+        tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # normalised time from 0 to 1 where user can set resolution?
+
+            
+        df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std', 'median']) # get mean & standard deviation
+        df_grouped.reset_index(inplace=True)  # reset the index to make Time [ms] a column again
+        median_std = df_grouped['std'].median()
+        df_grouped['std'].fillna(median_std, inplace=True) # changing NaN std values to median std
+
+        fMean = interpolate.interp1d(df_grouped['Time [ms]'], df_grouped['mean'])
+        fMedian = interpolate.interp1d(df_grouped['Time [ms]'], df_grouped['median'])
+        fStd = interpolate.interp1d(df_grouped['Time [ms]'], df_grouped['std'])
+        newMean = fMean(tsNormalised)
+        newMedian = fMedian(tsNormalised)
+        newStd = fStd(tsNormalised)
+
+        df_grouped['lower'] = df_grouped['mean']-df_grouped['std']
+        df_grouped['upper'] = df_grouped['mean']+df_grouped['std']
+        lowerBound = newMean - newStd
+        upperBound = newMean + newStd
+
+        self.graphConf.set_xlabel('Normalised time')
+        self.graphConf.set_ylabel('Pressure (mbar)')
+
+        self.graphConf.fill_between(tsNormalised, lowerBound, upperBound, color='b', alpha=0.2)
 
         for filename in set(df_combined['filename']): # Normalised time graphing one file dataset at a time
             file_data = df_combined[df_combined['filename'] == filename]
@@ -756,29 +779,8 @@ class confidenceGraph:
                 self.lblErr.place(relx=.65, rely=.95)
                 break
             self.graphConf.plot(tsNormalised, onePressureNew, color="gray", linewidth=0.5)
-            
-        df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std', 'median']) # get mean & standard deviation
-        df_grouped.reset_index(inplace=True)  # reset the index to make Time [ms] a column again
-        median_std = df_grouped['std'].median()
-        df_grouped['std'].fillna(median_std, inplace=True) # changing NaN std values to median std
-
-        # Smoothing out the mean into a rolling mean. Otherwise it looks bad on graph
-        window_size = 100
-        df_grouped['rolling_mean'] = df_grouped['mean'].rolling(window_size, center=True).mean()
-        df_grouped['rolling_median'] = df_grouped['median'].rolling(window_size, center=True).median()
-        df_grouped['lower'] = df_grouped['mean']-df_grouped['std']
-        df_grouped['upper'] = df_grouped['mean']+df_grouped['std']
-
-        self.graphConf.set_xlabel('Normalised time')
-        self.graphConf.set_ylabel('Pressure (mbar)')
-
-        self.graphConf.fill_between(df_grouped['Time [ms]'], df_grouped['lower'], df_grouped['upper'], color='b', alpha=0.2)
-        # separate plots for each file
-        """ for filename in set(df_combined['filename']):
-            file_data = df_combined[df_combined['filename'] == filename]
-            self.graphConf.plot(file_data['Time [ms]'], file_data['PL [hPa]'], color="gray", linewidth=0.5) """
-        self.meanPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_mean'], color='b', alpha=1, linewidth=5)
-        self.medianPlot, = self.graphConf.plot(df_grouped['Time [ms]'], df_grouped['rolling_median'], color='b', alpha=1, linewidth=5)
+        self.meanPlot, = self.graphConf.plot(tsNormalised, newMean, color='b', alpha=1, linewidth=5)
+        self.medianPlot, = self.graphConf.plot(tsNormalised, newMedian, color='b', alpha=1, linewidth=5)
         self.medianPlot.set_visible(not self.medianPlot.get_visible()) # by default show mean not median
 
         self.canvasConf.draw()
@@ -847,7 +849,7 @@ class confidenceGraph:
         if self.txtRes.get() == "":
             self.txtRes.insert(tk.END, "1000")   
         self.lblErr.place_forget()
-        
+
 # GUI elements and their placement
 gui = tk.Tk()
 fig, graph = plt.subplots(figsize=(9,7.6))
