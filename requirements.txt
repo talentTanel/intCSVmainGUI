@@ -6,3 +6,4 @@ altair
 plotly
 ipython
 promptlib
+scipy
