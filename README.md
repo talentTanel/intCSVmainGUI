@@ -1,6 +1,4 @@
 # intCSVmainGUI
-GUI for the internship sensor works. Reads CSV files containing at least time, pressure, and acceleration.
-
 To use first install required modules from 'requirements.txt' using ```pip install -r requirements.txt``` 
 while in the same directory as the file.
 
