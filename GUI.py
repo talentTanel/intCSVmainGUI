@@ -6,7 +6,6 @@ from tkinter import filedialog, ttk
 import promptlib
 import glob
 import os
-import db
 import sys
 import pandas as pd
 import numpy as np
@@ -51,7 +50,6 @@ def plot(graphData, startTime, stopTime):
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
     displayCustomPlot()
-    saveGraph(ts, pl, pc, pr)
     graphOptions()
     gc.collect()
 
@@ -422,7 +420,7 @@ def isFloat(num):
     except ValueError:
         return False
 
-# Reads the data from .CSV or database and inserts into each corresponding variable
+# Reads the data from .CSV and inserts into each corresponding variable
 def appendElements(ts, pl, pc, pr, mag, graphData):
     tempP = 0
     if len(graphData) != 4: # When gotten from db the size is smaller
@@ -471,25 +469,6 @@ def graphOptions():
 
     saveAsCSVbtn.place(relx=.05,rely=.8)
     canvas.draw()
-
-# Gets graph from database data
-def plotFromDB(table):
-    graph.clear()
-    tableName = table.rsplit(".",2)[0]
-    data, ipX, ipY, scenario = db.getTable(tableName)
-    if ipX:
-        global injectionPointXY
-        injectionPointXY = [ipX, ipY]
-    startTime = data[0][0]
-    stopTime = data[0][len(data[0])-1]
-    resetOnPullDB(tableName, scenario, startTime, stopTime)
-    plot(data, startTime, stopTime)
-    
-# Resets & updates GUI element values when getting a new graph from db
-def resetOnPullDB(tableName, scenario, startTime, stopTime):
-    global fileName
-    fileName = tableName.replace(" ", "") + ".csv"
-    lblScenarioText.config(text=scenario)
 
 
 # Opens a .CSV file for further processing
@@ -610,12 +589,6 @@ def displayInjectionPoint(ts):
         canvas.draw()
         lblInjectionPoint.config(text="Injection Point: {} [s]".format(injectionPointXY[0]))
 
-# Gets injection point from database if it exists
-def injectionPointFromDB(tsD, ipX, ipY):
-    if ipX:
-        global ipt
-        ipt, = graph.plot(ipX, ipY, "oc", label="Injection Point")
-        canvas.draw()
 
 # Suggests an injection point automatically by comparing a pressure to it's following pressure
 def getInjectionPointAuto(pl, ts):
@@ -651,14 +624,6 @@ def resetLabels():
     lblFileName.config(text="File Name: -")
     lblInjectionPoint.config(text="Injection Point: -")
 
-# Saves graph and points of interest on it to database
-def saveGraph(ts, pl, pc, pr):
-    saveGraphBtn = tk.Button(
-    gui, 
-    text="Save Graph",
-    command=lambda: db.insertToTable(fileName.rsplit(".",2)[0], ts, pl, pc, pr, injectionPointXY, lblScenarioText.cget("text"))
-    )
-    #saveGraphBtn.place(relx=.6, rely=0)
 
 # Function for editing the file's scenario
 def editScenario(e):
@@ -677,45 +642,6 @@ def editScenario(e):
         txtScenario.place_forget()
         saveScenarioBtn.place_forget()
         editScenarioBtn.place(relx=.05,rely=.21)
-
-# This class is for getting all the locally saved graphs and listing them
-class SavedGraphs:
-    # GUI for graphs saved in local database
-    def savedGraphsGUI(self):
-        self.savedGUI = tk.Toplevel()
-        self.savedGUI.geometry("500x300")
-        self.savedGUI.title("Saved Graphs")
-        self.savedGUI.resizable(False,False)
-        self.savedGraphsList()
-        self.savedGUI.mainloop()
-
-    # Gets all saved graphs and displays them in a list
-    def savedGraphsList(self):
-        tableLabel, self.tableList, tableScroll = self.savedGraphsElements()
-        tables = db.getAllTables()
-        self.tableList.place(relx=.02,rely=.2)
-        tableLabel.grid(row=0,column=0, pady=35, padx=10)
-        for i in range(len(tables)):
-            table = " " + tables[i] + ".csv"
-            self.tableList.insert(i, table)
-        for i in range(20):
-            self.tableList.insert(tk.END, (" " + str(i)))
-        self.tableList.config(yscrollcommand=tableScroll.set)
-        self.tableList.bind('<Double-Button-1>', self.getSelectedGraph)
-        tableScroll.place(relx=.4,rely=.2)
-
-    # GUI elements for saved graphs
-    def savedGraphsElements(self):
-        tableLabel = tk.Label(self.savedGUI, text="Saved Tables:")
-        tableList = tk.Listbox(self.savedGUI, width=30, height=14, activestyle="none", selectmode="extended")
-        tableScroll = tk.Scrollbar(self.savedGUI, command= tableList.yview)
-        return tableLabel, tableList, tableScroll
-
-    # Gets the double-clicked element from the list and finds it in the local database
-    def getSelectedGraph(self, e):
-        for i in self.tableList.curselection():
-            plotFromDB(self.tableList.get(i))
-        self.savedGUI.destroy()
 
 # Class for the confidence graphs
 class confidenceGraph:
@@ -937,11 +863,6 @@ previousGraphBtn = tk.Button(
     text="Prev.",
     command=lambda: changeFile("prev")
 )
-savedGraphsBtn = tk.Button(
-    gui, 
-    text="Show saved graphs", 
-    command=lambda: SavedGraphs().savedGraphsGUI()
-    )
 confidenceGraphBtn = tk.Button(
     gui,
     text="Confidence Graphs",

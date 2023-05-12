@@ -1,4 +1,0 @@
-1. database not working anymore with acceleration, need to also have it inserted into database
-2. Pressing open new file and then not choosing anything clears all previous values (FIXED?)
-3. If injection point is set and we plot away from it then it forces itself onto graph
-4. If a custom point is put on graph before injection then the legend hide doesn't work correctly
