@@ -4,6 +4,5 @@ matplotlib_inline
 numpy
 altair
 plotly
-seaborn
 ipython
 promptlib

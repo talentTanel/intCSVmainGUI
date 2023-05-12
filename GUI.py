@@ -742,6 +742,7 @@ class confidenceGraph:
     # Graphs the confidence graph onto the class window
     def graphPressureConf(self, df_combined):
         self.graphConf[0].clear()
+        self.graphConf[0].set_title("temp")
         self.setResolution()
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
@@ -775,7 +776,7 @@ class confidenceGraph:
             try:
                 onePressureNew = f(tsNormalised)
             except ValueError:
-                self.lblErr.place(relx=.65, rely=.95)
+                self.lblErr.place(relx=.65, rely=.9)
                 break
             self.graphConf[0].plot(tsNormalised, onePressureNew, color="gray", linewidth=0.4)
         self.meanPlot, = self.graphConf[0].plot(tsNormalised, newMean, color='b', alpha=1, linewidth=5)
@@ -823,7 +824,7 @@ class confidenceGraph:
             try:
                 onePressureNew = f(tsNormalised)
             except ValueError:
-                self.lblErr.place(relx=.65, rely=.95)
+                self.lblErr.place(relx=.65, rely=.9)
                 break
             self.graphConf[1].plot(tsNormalised, onePressureNew, color="gray", linewidth=0.4)
         self.meanPlotMag, = self.graphConf[1].plot(tsNormalised, newMean, color='r', alpha=1, linewidth=5)
@@ -882,19 +883,19 @@ class confidenceGraph:
         self.graphPressureConf(self.dataArr)
         self.graphMagnitudeConf(self.dataArr)
 
-    # Makes a textbox where the user can set desired resolution? for confidence graph
+    # Makes a textbox where the user can set desired resolution for confidence graph
     def setResolution(self):
         num = self.confGUI.register(checkIfNum)
 
         try: self.txtRes.winfo_exists() # if it doesn't exist then this will throw an error prompting the code to create it in except:
         except: 
             self.txtRes = tk.Entry(self.confGUI, validate='all', validatecommand=(num, '%P'))
-            self.txtRes.place(relx=.65, rely=.9)
-            lblRes = tk.Label(self.confGUI, text="Resolution?:")
-            lblRes.place(relx=.59, rely=.9)
+            self.txtRes.place(relx=.65, rely=.85)
+            lblRes = tk.Label(self.confGUI, text="Resolution:")
+            lblRes.place(relx=.59, rely=.85)
             btnRedraw = tk.Button(self.confGUI, text="Redraw", command=lambda: [self.graphPressureConf(self.dataArr), self.graphMagnitudeConf(self.dataArr)])
-            btnRedraw.place(relx=.75, rely=.9)
-            self.lblErr = tk.Label(self.confGUI, text="Lower the resolution", fg="red")
+            btnRedraw.place(relx=.75, rely=.85)
+            self.lblErr = tk.Label(self.confGUI, text="Change the resolution", fg="red")
         if self.txtRes.get() == "":
             self.txtRes.insert(tk.END, "1000")   
         self.lblErr.place_forget()

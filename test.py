@@ -1,31 +1,41 @@
 import matplotlib.pyplot as plt
+from matplotlib.widgets import CheckButtons
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import csv
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import os
 import db
+import sys
+#import seaborn as sns
+from math import sqrt
+from numpy import std
+from functools import partial
 
 fileName=""
-injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
-annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
+sampleRate = None
+customPointXY, customPlot = [], []
+injectionPointXY, maxPointXY, minPointXY = [], [], []
+annIp, ipPlot = None, None
 # User Interface
 def GUI():
-    gui.geometry("1280x720")
+    gui.geometry("1280x750")
+    gui.bind("<Control-q>", sys.exit)
+    #sns.set_theme(context='paper') // Maybe something for the future to change themes?
     gui.mainloop()
 
 # Graphs a .CSV file
 def plot(graphData, startTime, stopTime):
     graph.clear()
-    ts, pl, pc, pr = [], [], [], []
-    ts, pl, pc, pr = appendElements(ts, pl, pc, pr, graphData)
-    ts, pl, pc, pr = startStopTimes(ts, pl, pc, pr, startTime, stopTime)
-    graph.plot(ts, pl, "-r", label="Left") 
-    graph.plot(ts, pc, "-b", label="Center")
-    graph.plot(ts, pr, "-k", label="Right")
+    global plots
+    ts, pl, pc, pr, mag = [], [], [], [], []
+    ts, pl, pc, pr, mag = appendElements(ts, pl, pc, pr, mag, graphData)
+    ts, pl, pc, pr, mag = startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime)
+    lPlot, = graph.plot(ts, pl, "-r", label="P Left") 
+    cPlot, = graph.plot(ts, pc, "-b", label="P Center")
+    rPlot, = graph.plot(ts, pr, "-k", label="P Right")
+    mPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
     injectionPointDef(pl, ts)
-    maximumPoint(pl, ts)
-    minimumPoint(pl, ts)
     getRange(pl, ts)
     graph.legend(loc="upper right")
     graph.set_xlabel("Time [s]")
@@ -34,78 +44,330 @@ def plot(graphData, startTime, stopTime):
     canvas.draw()
     toolbar.update()
     toolbar.place(relx=.7, rely=0)
-    displayManualPoints(ts)
+    displayCustomPlot()
     saveGraph(ts, pl, pc, pr)
     graphOptions()
+    plots = lPlot, cPlot, rPlot, mPlot
 
+# Gets the visibility of a plot and reverses it when corresponding button is pressed
+def GetVisibility(label):
+    if label == "Hide P left":
+        plots[0].set_visible(not plots[0].get_visible())
+    elif label == "Hide P center":
+        plots[1].set_visible(not plots[1].get_visible())
+    elif label == "Hide P right":
+        plots[2].set_visible(not plots[2].get_visible())
+    elif label == "Hide Acc Mag":
+        plots[3].set_visible(not plots[3].get_visible())
+    canvas.draw()
+
+# Exports points of interest and filename to a .CSV file
+def exportToCSV():
+    listChildren = customPointList.get_children()
+    header, rowHeader = ["File Name,", "INJECTION"], []
+    values = []
+    values.append(fileName)
+    data = readCSV(2)
+    rowHeader = data.pop(0)
+    data.pop(0)
+    data = getDataAtCustomValue(data, listChildren, rowHeader)
+    temp3 = []
+    if injectionPointXY: values.append(injectionPointXY[0])
+    else: values.append("-")
+    for child in listChildren:
+        temp = customPointList.item(child)
+        values.append(temp["values"][2])
+        header.extend([temp["values"][1]])
+    if values != None:
+        try:
+            with open("export_"+fileName, 'w', newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(header)
+                writer.writerow(values)
+                for i in range(len(data)):
+                    for j in range(len(data[i])):
+                        temp3.append(data[i][j])
+                for i in range(len(rowHeader)):
+                    arr = [rowHeader[i], temp3[i]]
+                    extension = []
+                    k = 1
+                    for j in range(len(getAllIds())):
+                        if(values[j+2] != "-"):
+                            index = i+k*len(rowHeader)
+                            extension.append(temp3[index])
+                            k = k + 1
+                        else:
+                            extension.append("-")
+                            k = k + 1
+                    arr.extend(extension)
+                    writer.writerow(arr)
+        except Exception as e:
+            print(e)
+
+# Exports full data between two custom points
+def exportCroppedCSV():
+    id1 = txtStartCustom.get()
+    id2 = txtStopCustom.get()
+    if (id1 != "" and id2 != ""):
+        data = readCSV(2)
+        header = data[0]
+        data.pop(0)
+        exportName = "Cropped_{}_{}_{}.csv".format(fileName.rsplit(".",2)[0], getCustomPointName(id1), getCustomPointName(id2))
+        newData = customPointDataCropping(id1, id2, data)
+        if (newData != data):
+            try:
+                with open(exportName, "w", newline="") as file:
+                    writer = csv.writer(file)
+                    writer.writerow(header)
+                    for row in newData:
+                        writer.writerow(row)
+            except Exception as e:
+                print(e)
+
+# Sets the options and commands for each item in the right-click menu on the plot
 def onRightClick(event):
     if event.inaxes is not None and event.button == 3: # 'inaxes' to check if the right click was over graph. Button 3 is right mouse click
         menu = tk.Menu(gui, tearoff=0)
         menu.add_command(label="Injection Point", command=lambda: manualInjectionPoint(event))
-        menu.add_command(label="Nadir Pressure", command=lambda: manualNadirPoint(event))
-        menu.add_command(label="Tailwater", command=lambda: manualTailwaterPoint(event))
+        listChildren = customPointList.get_children()
+        for child in listChildren:
+            temp = customPointList.item(child)
+            tempValues = temp["values"]
+            partialCustom = partial(setCustomPoint, event, tempValues[0])
+            useLabel = "{} - {}".format(tempValues[0],tempValues[1])
+            menu.add_command(label=useLabel, command= partialCustom)
         menu.add_separator()
-        menu.add_command(label="Option 3")
+        menu.add_command(label="Cancel", command=lambda: setCustomPoint(event, 1))
         x, y = canvas.get_tk_widget().winfo_pointerxy() # x,y values for where the menu will show up
         menu.post(x, y)
 
+# Gets all data from CSV file at custom point timestamp and returns all of it in one array
+def getDataAtCustomValue(data, listChildren, rowHeader):
+    tempValues, values = [], []
+    if injectionPointXY: 
+        # Get injection point data first
+        Inj = float(injectionPointXY[0])
+        for i in range(len(data)-1):
+            diffInj = abs(float(Inj) - float(data[i][0]))
+            if diffInj < 0.005:
+                for j in range(len(data[i])):
+                    tempValues.append(data[i][j])
+                values.append(tempValues)
+                tempValues = []
+                break
+    else: 
+        tempArr = []
+        for i in range(len(rowHeader)):
+            tempArr.append("-")
+        values.append(tempArr)
+    
+    for child in listChildren:
+        temp = customPointList.item(child)
+        timeValue = temp["values"][2]
+        if (timeValue != "-"):
+            for i in range(len(data)-1):
+                tempValues = []
+                diff = abs(float(timeValue) - float(data[i][0]))
+                if diff < 0.005:
+                    for j in range(len(data[i])):
+                        tempValues.append(data[i][j])
+                    break
+        values.append(tempValues)    
+    return values
+            
+
+# For displaying custom points
+def setCustomPoint(event, id):
+    global customPointXY
+    for i in range(len(customPointXY)):
+        if(customPointXY[i][2] == id):
+            index = i
+            customPointXY[i] = [round(event.xdata, 2), round(event.ydata, 2), id]
+    createCustomPlot(id, index)
+
+# All custom points have a numeric identifier, this searches for all the ones that are in use
+def getAllIds():
+    ids = []
+    for i in range(len(customPointXY)):
+        ids.append(customPointXY[i][2])
+    return ids
+
+# Gets the name value of a custom point
+def getCustomPointName(id):
+    listChildren = customPointList.get_children()
+    for child in listChildren:
+        temp = customPointList.item(child)
+        if(temp["values"][0] == int(id)):
+            return temp["values"][1]
+    return None
+
+# Creates the plot and annotation on the visible graph for a custom point
+def createCustomPlot(id, index):
+    global customPlot
+    if(customPlot[index][0]): customPlot[index][0].remove(), customPlot[index][1].remove()
+    customPlot[index] = [None, None, id]
+    customPlot[index][0] = graph.plot(customPointXY[index][0], customPointXY[index][1], "or", label=id).pop(0)
+    customPlot[index][1] = graph.annotate(id, xy=(customPointXY[index][0], customPointXY[index][1]), xytext=(customPointXY[index][0], customPointXY[index][1]), color="green")
+    canvas.draw()
+    listChildren = customPointList.get_children()
+    for child in listChildren:
+        temp = customPointList.item(child)
+        if temp["values"][0] == id:
+            tempValues = temp["values"]
+            customPointList.item(child, values=(tempValues[0], tempValues[1], customPointXY[index][0]))
+            break
+
+# Displays custom points on graph when the graph is updated
+def displayCustomPlot():
+    for i in range(len(getAllIds())):
+        if(customPlot[i][0] != None): 
+            customPlot[i][0].remove(), customPlot[i][1].remove()
+            customPlot[i] = [None, None, customPlot[i][2]]
+            customPlot[i][0] = graph.plot(customPointXY[i][0], customPointXY[i][1], "or", label=customPlot[i][2]).pop(0)
+            customPlot[i][1] = graph.annotate(customPlot[i][2], xy=(customPointXY[i][0], customPointXY[i][1]), xytext=(customPointXY[i][0], customPointXY[i][1]), color="green")
+            canvas.draw()
+
+# Window for creating new custom points
+def createCustomPoint():
+    crtPoint = tk.Toplevel(gui)
+    crtPoint.title("Add new point")
+    crtPoint.geometry("300x200")
+    num = crtPoint.register(checkIfNum)
+
+    lblId = tk.Label(crtPoint, text="ID (number):")
+    lblId.grid(row=0, column=0, padx=25, pady=25)
+    txtId = tk.Entry(crtPoint, validate='all', validatecommand=(num, '%P'))
+    txtId.grid(row=0, column=1)
+
+    lblName = tk.Label(crtPoint, text="Name (text):")
+    lblName.grid(row=1, column=0)
+    txtName = tk.Entry(crtPoint)
+    txtName.grid(row=1, column=1)
+
+    lblError = tk.Label(crtPoint, text="Name cannot be empty", fg="red", font=12)
+    lblCreated = tk.Label(crtPoint, text="Point created", fg="green", font=12)
+    labels = [lblError, lblCreated]
+
+    crtPoint.bind('<Return>', lambda x: listCustomPoint(txtId.get(), txtName.get(), labels))
+    addBtn = tk.Button(crtPoint, text="   ADD   ", font=(12), command=lambda: listCustomPoint(txtId.get(), txtName.get(), labels))
+    addBtn.grid(row=2, column=1, pady=25)
+
+# Checks if the inputted key is a number or not
+def checkIfNum(entry):
+    if str.isdigit(entry) or entry == "":
+        return True
+    else:
+        return False
+    
+# Checks if everything is correct in the custom point creation inputs and gives feedback, also updates values in list
+def listCustomPoint(id, name, labels):
+    if (name == ""): 
+        labels[0].place(relx=.35,rely=.8)
+        labels[1].place_forget()
+    else: 
+        labels[0].place_forget()
+        labels[1].place(relx=.35,rely=.8)
+        if (id == ""): id = len(customPointXY)
+        else: id = int(id)
+        listChildren = customPointList.get_children()
+        count = 0
+        if len(listChildren) == 0:
+            customPointList.insert("", "end", text=id, values=(id, name, "-"))
+        for child in listChildren:
+            count = count + 1
+            if customPointList.item(child)["values"][0] == id:
+                temp = customPointList.item(child)
+                tempValues = temp["values"]
+                customPointList.insert("", "end", text=id, values=(tempValues[0],name, "-"))
+                customPointList.item(child, values=(len(customPointXY)+1, tempValues[1], tempValues[2]))
+                sortCustomList()
+                break
+            elif (count == len(listChildren)):
+                customPointList.insert("", "end", text=id, values=(id, name, "-"))
+                sortCustomList()
+        saveCustomPoint(id)
+
+# Sorts the items in the treeview list by ID
+def sortCustomList():
+    children = customPointList.get_children()
+    sortedChildren = sorted(children, key=getID)
+    customPointList.set_children("", *sortedChildren)
+
+def getID(row):
+    return int(customPointList.set(row, "ID"))
+
+# Saves the new custom point values to two arrays and if needed it swaps values
+def saveCustomPoint(id):
+    global customPointXY, customPlot
+    ids = getAllIds()
+    if (id not in ids):
+        customPointXY.append([None, None, id])
+        customPlot.append([None, None, id])
+    elif (id in ids):
+        for i in range(len(customPointXY)): # If an ID is already in use, but a new one is saved with it
+            if(customPointXY[i][2] == id): # then it gives the old ID owner a new ID
+                temp = customPointXY[i]
+                customPointXY[i] = [None, None, len(customPointXY)+1]
+                customPointXY.append(temp)
+                temp = customPlot[i]
+                customPlot[i] = [None, None, len(customPlot)+1]
+                customPlot.append(temp)
+
+
+# Sets the XY values for the injection point and graphs it
 def manualInjectionPoint(event):
     global injectionPointXY
     injectionPointXY = [round(event.xdata, 2), round(event.ydata, 2)]
     displayInjectionPoint(0)
 
-# Sets the XY values for the nadir point and graphs it
-def manualNadirPoint(event):
-    global nadirXY, annNadir, nadirPlot
-    nadirXY = [round(event.xdata, 2), round(event.ydata, 2)]
-    temp = 50
-    if annNadir: annNadir.remove(), nadirPlot.remove()
-    nadirPointT = graph.plot(nadirXY[0],nadirXY[1], "or", label="Nadir Pressure")
-    nadirPlot = nadirPointT.pop(0)
-    annNadir = graph.annotate("Nadir Pressure", xy=(nadirXY[0], nadirXY[1]), xytext=((temp+nadirXY[0])/2.5,nadirXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    lblNadirPoint.config(text="Nadir Point [s]: {}".format(nadirXY[0]))
-
-# Sets the XY values for the tailwater point and graphs it
-def manualTailwaterPoint(event):
-    global tailwaterXY, annTailwater, tailwaterPlot
-    tailwaterXY = [round(event.xdata, 2), round(event.ydata, 2)]
-    temp = 50
-    if annTailwater: annTailwater.remove(), tailwaterPlot.remove()
-    tailwaterPlotT = graph.plot(tailwaterXY[0],tailwaterXY[1], "or", label="Tailwater")
-    tailwaterPlot = tailwaterPlotT.pop(0)
-    annTailwater = graph.annotate("Tailwater", xy=(tailwaterXY[0], tailwaterXY[1]), xytext=((temp+tailwaterXY[0])/2.5,tailwaterXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    lblTailwater.config(text="Tailwater [s]: {}".format(tailwaterXY[0]))
-
-def displayManualPoints(ts):
-    global nadirXY, annNadir, nadirPlot, tailwaterXY, annTailwater, tailwaterPlot
-    if ts == 0: ts[0] = 50
-    if annNadir: # Nadir Point
-        annNadir.remove(), nadirPlot.remove()
-        nadirPointT = graph.plot(nadirXY[0],nadirXY[1], "or", label="Nadir Pressure")
-        nadirPlot = nadirPointT.pop(0)
-        annNadir = graph.annotate("Nadir Pressure", xy=(nadirXY[0], nadirXY[1]), xytext=((ts[0]+nadirXY[0])/2.5,nadirXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblNadirPoint.config(text="Nadir Point [s]: {}".format(nadirXY[0]))
-    if annTailwater: # Tailwater Point
-        annTailwater.remove(), tailwaterPlot.remove()
-        tailwaterPlotT = graph.plot(tailwaterXY[0],tailwaterXY[1], "or", label="Tailwater")
-        tailwaterPlot = tailwaterPlotT.pop(0)
-        annTailwater = graph.annotate("Tailwater", xy=(tailwaterXY[0], tailwaterXY[1]), xytext=((ts[0]+tailwaterXY[0])/2.5,tailwaterXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblTailwater.config(text="Tailwater [s]: {}".format(tailwaterXY[0]))
-
-
 # If a start or stop time has been set this function removes everything not in those ranges
-def startStopTimes(ts, pl, pc, pr, startTime, stopTime):
+def startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime):
     if(isFloat(startTime) == True):
         ts = [x for x in ts if x >= float(startTime)] # Removing all values from timestamp before startTime
-        pl, pc, pr = sameLength(ts,pl,pc,pr,"0") # Removing all values from pressure before startTime
+        pl, pc, pr, mag = sameLength(ts,pl,pc,pr,mag,"0") # Removing all values from pressure before startTime
     if(isFloat(stopTime) == True):
         ts = [x for x in ts if x <= float(stopTime)] # Removing all values from timestamp after stopTime
-        pl, pc, pr = sameLength(ts,pl,pc,pr,"end") # Removing all values from pressure after stopTime
-    return ts, pl, pc, pr
+        pl, pc, pr, mag = sameLength(ts,pl,pc,pr,mag,"end") # Removing all values from pressure after stopTime
+    return ts, pl, pc, pr, mag
+
+# Crops the file data to only save data from between two custom points
+def customPointDataCropping(id1, id2, data):
+    listChildren = customPointList.get_children()
+    newData = data
+    for child in listChildren:
+        temp = customPointList.item(child)
+        tempValues = temp["values"]
+        if (tempValues[2] != "-"):
+            if (int(id1) == tempValues[0]):
+                startTime = tempValues[2]
+                newData = [x for x in newData if float(x[0]) >= float(startTime)]
+            elif (int(id2) == tempValues[0]):
+                stopTime = tempValues[2]
+                newData = [x for x in newData if float(x[0]) <= float(stopTime)]
+    return newData
+
+# Get graph between two custom points by their id
+def customStartStopTimes():
+    startID = txtStartCustom.get()
+    stopID = txtStopCustom.get()
+    if (startID != "" and stopID != ""):
+        startID, stopID = int(startID), int(stopID)
+        startTime, stopTime = None, None
+        if (startID < stopID):
+            listChildren = customPointList.get_children()
+            for child in listChildren:
+                temp = customPointList.item(child)
+                tempValues = temp["values"]
+                if (startID == tempValues[0]):
+                    startTime = tempValues[2]
+                elif (stopID == tempValues[0]):
+                    stopTime = tempValues[2]
+                if (startTime and stopTime and startTime != "-" and stopTime != "-"):
+                    plt.close()
+                    plot(readCSV(0), startTime, stopTime)
+    else:
+        plt.close()
+        plot(readCSV(0), "None", "None")    
 
 # Automatically finds the region of interest in graph from maximum pressure point
 def findRange(pl ,ts):
@@ -136,23 +398,32 @@ def isFloat(num):
         return False
 
 # Reads the data from .CSV or database and inserts into each corresponding variable
-def appendElements(ts, pl, pc, pr, graphData):
-    if len(graphData) != 4: # When gotten from db the size is 4
+def appendElements(ts, pl, pc, pr, mag, graphData):
+    tempP = 0
+    if len(graphData) != 4: # When gotten from db the size is smaller
         for i in range(len(graphData)):
             ts.append(float(graphData[i][0]))
             pl.append(float(graphData[i][1]))
             pc.append(float(graphData[i][3]))
             pr.append(float(graphData[i][5]))
+            if i == 0:
+                tempP = pl[0]
+            if sampleRate == 100:
+                mag.append(tempP-10+sqrt(pow(float(graphData[i][17]),2) + pow(float(graphData[i][18]),2) + pow(float(graphData[i][19]),2)))
+            elif sampleRate == 250:
+                mag.append(tempP-10+sqrt(pow(float(graphData[i][7]),2) + pow(float(graphData[i][8]),2) + pow(float(graphData[i][9]),2)))
+            else:
+                mag.append(0)
     else:
         ts = graphData[0]
         pl = graphData[1]
         pc = graphData[2]
         pr = graphData[3]
-    return ts, pl, pc, pr
+    return ts, pl, pc, pr, mag
 
-# Places multiple GUI elements when a graph is plotted for the first time
+# Places all needed GUI elements when a graph is plotted or updated
 def graphOptions():
-    editScenarioBtn.place(relx=.72,rely=.73)
+    editScenarioBtn.place(relx=.67,rely=.73)
     txtStartTime.place(relx= .1, rely= .1)
     lblStartTime.place(relx= .05, rely= .1)
     txtStopTime.place(relx= .1, rely= .2)
@@ -163,10 +434,21 @@ def graphOptions():
     lblFileName.config(text="File Name: {}".format(fileName))
     lblFileName.place(relx=.45,rely=.8)
     lblInjectionPoint.place(relx=.45,rely=.85)
-    lblMaximumPoint.place(relx=.45,rely=.9)
-    lblMinimumPoint.place(relx=.45,rely=.95)
-    lblNadirPoint.place(relx=.8,rely=.8)
-    lblTailwater.place(relx=.8,rely=.85)
+    lblCustomPoints.place(relx=.85, rely=.72)
+    customPointList.place(relx=.85, rely=.76)
+    createPointBtn.place(relx=.85, rely=.955)
+
+    lblStartStopGuide.place(relx=.1,rely=.41)
+    lblStartStopID.place(relx=.1,rely=.45)
+    txtStartCustom.place(relx=.12,rely=.45) 
+    txtStopCustom.place(relx=.15,rely=.45)
+    customStartStopBtn.place(relx=.17, rely=.445)
+    customStartStopResetBtn.place(relx=.205, rely=.445)
+    customStartStopExportBtn.place(relx=.243, rely=.445)
+
+    saveAsCSVbtn.place(relx=.52,rely=0)
+    rax.set_visible(True)
+    canvas.draw()
 
 # Gets graph from database data
 def plotFromDB(table):
@@ -205,93 +487,61 @@ def readCSV(e):
         fileName = os.path.basename(filedialog.askopenfilename())
     file = open(fileName,"r")
     data = list(csv.reader(file, delimiter=","))
+    global sampleRate
+    sampleRate = getSampleRate(data[0])
     file.close()
-    data.pop(0) # data[0] is .CSV headers
-    resetLabels()
-    resetOnNewFile(e)
+    if (e != 2): # Need headers for some exports
+        data.pop(0) # data[0] is .CSV headers
+    if (e == 1):
+        resetLabels()
+        resetOnNewFile(e)
     return data
 
+# Gets the sample rate of each opened file, needed to know header element locations
+def getSampleRate(headers):
+    #print(headers)
+    fileHeaders = []
+    # 250 Hz headers
+    fileHeaders.append(['Time [s]', 'PL [hPa]', 'TL [C]', 'PC [hPa]', 'TC [C]', 'PR [hPa]', 'TR [C]', 'AX [m/s2]', 'AY [m/s2]', 'AZ [m/s2]', 'RX [rad/s]', 'RY [rad/s]', 'RZ [rad/s]', 'CSM', 'CSA', 'CSR', 'CSTOT'])
+    # 100 Hz headers
+    fileHeaders.append(['Time [s]', 'PL [mbar]', 'TL [C]', 'PC [mbar]', 'TC [C]', 'PR [mbar]', 'TR [C]', 'EX [deg]', 'EY [deg]', 'EZ [deg]', 'QW [-]', 'QX [-]', 'QY [-]', 'QZ [-]', 'MX [microT]', 'MY [microT]', 'MZ [microT]', 'AX [m/s2]', 'AY [m/s2]', 'AZ [m/s2]', 'RX [rad/s]', 'RY [rad/s]', 'RZ [rad/s]', 'CSM', 'CSA', 'CSR', 'CSTOT'])
+    if headers == fileHeaders[0]:
+        return 250
+    elif headers == fileHeaders[1]:
+        return 100
+    else:
+        return 0
+
+# When a new file is opened all previously set values for points of interests are reset
 def resetOnNewFile(e):
     if e != 0:
-        global annIp, ipPlot, annMax, maximum, annMin, minimum, injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY, annNadir, nadirPlot, annTailwater, tailwaterPlot
-        injectionPointXY, maxPointXY, minPointXY, nadirXY, tailwaterXY = [], [], [], [], []
-        annIp, ipPlot, annMax, maximum, annMin, minimum, annNadir, nadirPlot, annTailwater, tailwaterPlot = None, None, None, None, None, None, None, None, None, None
+        global annIp, ipPlot, injectionPointXY, maxPointXY, minPointXY, customPointXY, customPlot
+        injectionPointXY, maxPointXY, minPointXY = [], [], []
+        annIp, ipPlot = None, None
         lblScenarioText.config(text="")
+        for i in range(len(customPointXY)):
+            customPointXY[i] = [None, None, customPointXY[i][2]]
+            customPlot[i] = [None, None, customPlot[i][2]]
+        listChildren = customPointList.get_children()
+        for child in listChildren:
+            temp = customPointList.item(child)
+            tempValues = temp["values"]
+            customPointList.item(child, values=(tempValues[0], tempValues[1], "-"))
 
 # Makes two lists the same length for graphing
-def sameLength(X, pl, pc, pr, type):
+def sameLength(X, pl, pc, pr, mag, type):
     while len(X) != len(pl):
         if(type == "end"):
             pl.pop()
             pc.pop()
             pr.pop()
+            mag.pop()
         else:
             pl.pop(0)
             pc.pop(0)
             pr.pop(0)
-    return pl, pc, pr
-    
-# Checks if an maximum point is already available, if there is - displays it
-def maximumPoint(pl, ts):
-    maximumPointBtn = tk.Button(
-        gui, 
-        text="Suggest maximum point",
-        command=lambda: getMaximumPoint(pl, ts)
-        )
-    maximumPointBtn.place(relx=.1, rely=.42)
-    if maxPointXY:
-        global annMax, maximum
-        maximumt = graph.plot(maxPointXY[0], maxPointXY[1], "or", label="Maximum point")
-        maximum = maximumt.pop(0)
-        tsPlace = ts[len(ts)-1] / 8
-        annMax = graph.annotate("Maximum Point", xy=(maxPointXY[0], maxPointXY[1]), xytext=(maxPointXY[0]-tsPlace, maxPointXY[1]+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblMaximumPoint.config(text="Maximum Pressure [mbar]: {}".format(maxPointXY[1]))
-
-# Finds the highest pressure in variable and that is the maximum point. Displays it on the graph
-def getMaximumPoint(pl, ts):
-    maxPl = max(pl)
-    maxTs = ts[pl.index(maxPl)]
-    
-    global annMax, maximum, maxPointXY
-    maximumt = graph.plot(maxTs, maxPl, "or", label="Maximum point")
-    maximum = maximumt.pop(0)
-    tsPlace = ts[len(ts)-1] / 8
-    annMax = graph.annotate("Maximum Point", xy=(maxTs, maxPl), xytext=(maxTs-tsPlace, maxPl+200), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    maxPointXY = [maxTs, maxPl]
-    lblMaximumPoint.config(text="Maximum Pressure [mbar]: {}".format(maxPl))
-
-# Checks if an minimum point is already available, if there is - displays it
-def minimumPoint(pl, ts):
-    minimumPointBtn = tk.Button(
-        gui, 
-        text="Suggest Minimum point",
-        command=lambda: getMinimumPoint(pl, ts)
-        )
-    minimumPointBtn.place(relx=.1, rely=.52)
-    if minPointXY:
-        global annmin, minimum
-        minimumt = graph.plot(minPointXY[0], minPointXY[1], "or", label="Minimum point")
-        minimum = minimumt.pop(0)
-        tsPlace = ts[len(ts)-1] / 8
-        annmin = graph.annotate("Minimum Point", xy=(minPointXY[0], minPointXY[1]), xytext=(minPointXY[0]-tsPlace, minPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-        canvas.draw()
-        lblMinimumPoint.config(text="Minimum Pressure [mbar]: {}".format(minPointXY[1]))
-
-# Finds the lowest pressure in variable and that is the minimum point. Displays it on the graph
-def getMinimumPoint(pl, ts):
-    minPl = min(pl)
-    minTs = ts[pl.index(minPl)]
-    
-    global annmin, minimum, minPointXY
-    minimumt = graph.plot(minTs, minPl, "or", label="minimum point")
-    minimum = minimumt.pop(0)
-    tsPlace = ts[len(ts)-1] / 8
-    annmin = graph.annotate("Minimum Point", xy=(minTs, minPl), xytext=(minTs-tsPlace, minPl-259), color="green", arrowprops= dict(facecolor="green", headwidth=8))
-    canvas.draw()
-    minPointXY = [minTs, minPl]
-    lblMinimumPoint.config(text="Minimum Pressure [mbar]: {}".format(minPl))
+            mag.pop(0)
+    return pl, pc, pr, mag
 
 # Checks if an injection point is already available, if there is - displays it
 def injectionPointDef(pl, ts):
@@ -309,7 +559,7 @@ def displayInjectionPoint(ts):
         ipPlot = ipt.pop(0)
         annIp = graph.annotate("Injection Point", xy=(injectionPointXY[0], injectionPointXY[1]), xytext=((ts[0]+injectionPointXY[0])/2.5,injectionPointXY[1]-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
         canvas.draw()
-        lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [second]".format(injectionPointXY[1], injectionPointXY[0]))
+        lblInjectionPoint.config(text="Injection Point: {} [s]".format(injectionPointXY[0]))
 
 # Gets injection point from database if it exists
 def injectionPointFromDB(tsD, ipX, ipY):
@@ -333,29 +583,25 @@ def getInjectionPointAuto(pl, ts):
                 annIp = graph.annotate("Injection Point", xy=(tsIn, plIn), xytext=((ts[0]+tsIn)/2.5,plIn-250), color="green", arrowprops= dict(facecolor="green", headwidth=8))
                 canvas.draw()
                 injectionPointXY = [tsIn, plIn]
-                lblInjectionPoint.config(text="Injection Point: {} [mbar] {} [s]".format(plIn, tsIn))
+                lblInjectionPoint.config(text="Injection Point: {} [s]".format(tsIn))
                 break
         
 # Suggests an injection point when a specific button is pressed
 def injectionPointBtn(pl, ts):
     insertAutoBtn = tk.Button(
     gui, 
-    text="Suggest new injection point",
+    text="Suggest injection point",
     command=lambda: getInjectionPointAuto(pl, ts)
     )
-    insertAutoBtn.place(relx=.1,rely=.3)
-    insertSlider.place(relx=.11, rely=.35)
+    insertAutoBtn.place(relx=.1,rely=.25)
+    insertSlider.place(relx=.11, rely=.3)
     insertSlider.set(2)
-    lblInsertText.place(relx=0,rely=.375)
+    lblInsertText.place(relx=0,rely=.325)
 
 # Resets the values of labels to their default state when loading in a new file
 def resetLabels():
     lblFileName.config(text="File Name: -")
     lblInjectionPoint.config(text="Injection Point: -")
-    lblMaximumPoint.config(text="Maximum Pressure [mbar]: -")
-    lblMinimumPoint.config(text="Minimum Pressure [mbar]: -")
-    lblNadirPoint.config(text="Nadir Point [s]: -")
-    lblTailwater.config(text="Tailwater [s]: -")
 
 # Saves graph and points of interest on it to database
 def saveGraph(ts, pl, pc, pr):
@@ -371,18 +617,18 @@ def editScenario(e):
     if (e == 0):
         lblScenarioText.place_forget()
         txtScenario.delete("1.0", tk.END)
-        txtScenario.place(relx=.57, rely=.73)
+        txtScenario.place(relx=.52, rely=.73)
         text = lblScenarioText.cget("text")
         text = text.rstrip("\n")
         txtScenario.insert(tk.END, text)
         editScenarioBtn.place_forget()
-        saveScenarioBtn.place(relx=.72,rely=.73)
+        saveScenarioBtn.place(relx=.67,rely=.73)
     else:
         lblScenarioText.config(text=txtScenario.get("1.0", tk.END))
-        lblScenarioText.place(relx=.57, rely=.72)
+        lblScenarioText.place(relx=.52, rely=.72)
         txtScenario.place_forget()
         saveScenarioBtn.place_forget()
-        editScenarioBtn.place(relx=.72,rely=.73)
+        editScenarioBtn.place(relx=.67,rely=.73)
 
 # This class is for getting all the locally saved graphs and listing them
 class SavedGraphs:
@@ -423,25 +669,59 @@ class SavedGraphs:
             plotFromDB(self.tableList.get(i))
         self.savedGUI.destroy()
 
+# Class for the confidence graphs
+class confidenceGraph:
+    # Class GUI
+    def menu(self):
+        self.savedGUI = tk.Toplevel()
+        self.savedGUI.geometry("800x800")
+        self.savedGUI.title("Saved Graphs")
+        self.savedGUI.resizable(False,False)
+        self.graph1()
+        self.savedGUI.mainloop()
+
+    def graph1(self):
+        data = readCSV(3)
+        fig1, ax1 = plt.subplots()
+        ts, pl, = [], []
+        for i in range(len(data)):
+            ts.append(float(data[i][0]))
+            pl.append(float(data[i][1]))
+        #plMean = self.getMean(pl)
+        ax1.plot(ts, pl)
+        """ ax1.fill_between(
+            x, df_grouped['ci_lower'], df_grouped['ci_upper'], color='b', alpha=.15) """
+        ax1.set_title('Placeholder name')
+        plt.show()
+        
+    # Gets the mean of a list/array and returns it
+    def getMean(self, a):
+        sum = 0
+        for i in range(len(a)):
+            sum = sum + a[i]
+        return sum / len(a)
+
 # GUI elements and their placement
 gui = tk.Tk()
 fig, graph = plt.subplots()
 canvas = FigureCanvasTkAgg(fig, gui)
 canvas.get_tk_widget().place(relx=.5,rely=.05)
 toolbar = NavigationToolbar2Tk(canvas, gui, pack_toolbar=False)
+numbersOnly = gui.register(checkIfNum)
 
 lblScenario = tk.Label(gui, text="Scenario:", font=("Arial",14))
 lblScenarioText = tk.Label(gui, text="", font=("Arial",14))
 lblFileName = tk.Label(gui, text="File Name: -", font=("Arial",14))
 lblInjectionPoint = tk.Label(gui, text="Injection Point: -", font=("Arial",14))
-lblMaximumPoint = tk.Label(gui, text="Maximum Pressure [mbar]: -", font=("Arial",14))
-lblMinimumPoint = tk.Label(gui, text="Minimum Pressure [mbar]: -", font=("Arial",14))
-lblNadirPoint = tk.Label(gui, text="Nadir Point [s]: -", font=("Arial",14))
-lblTailwater = tk.Label(gui, text="Tailwater [s]: -", font=("Arial",14))
+lblCustomPoints = tk.Label(gui, text="Custom points: ", font=("Arial", 14))
 txtScenario = tk.Text(gui, width=20, height=2, font=("Arial",13))
 txtStartTime = tk.Entry(gui)
 lblStartTime = tk.Label(gui, text="Start time:")
 txtStopTime = tk.Entry(gui)
+lblStartStopGuide = tk.Label(gui, text="Crop Graph between two custom points:")
+lblStartStopID = tk.Label(gui, text="ID:")
+txtStartCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
+txtStopCustom = tk.Entry(gui, width=3, validate='all', validatecommand=(numbersOnly, '%P'))
 lblStopTime = tk.Label(gui, text="Stop time:")
 insertSlider = tk.Scale(gui, from_=0, to=10, orient="horizontal")
 lblInsertText = tk.Label(gui, text="Pressure change [mbar]:")
@@ -455,6 +735,11 @@ savedGraphsBtn = tk.Button(
     text="Show saved graphs", 
     command=lambda: SavedGraphs().savedGraphsGUI()
     )
+confidenceGraphBtn = tk.Button(
+    gui,
+    text="Confidence Graphs",
+    command=lambda: confidenceGraph().menu()
+)
 updateGraphBtn = tk.Button(
     gui, 
     text="Update Graph",
@@ -472,8 +757,46 @@ saveScenarioBtn = tk.Button(
     font=("Arial bold",12),
     command=lambda: editScenario(1)
 )
+saveAsCSVbtn = tk.Button(
+    gui,
+    text="Save As CSV",
+    command=lambda: exportToCSV()
+)
+createPointBtn = tk.Button(
+    gui,
+    text="Create New",
+    font=("Arial",12),
+    command=lambda: createCustomPoint()
+)
+customStartStopBtn = tk.Button(
+    gui,
+    text="Crop",
+    command=lambda: customStartStopTimes()
+)
+customStartStopResetBtn = tk.Button(
+    gui,
+    text="Clear",
+    command=lambda: [txtStartCustom.delete(0, tk.END), txtStopCustom.delete(0, tk.END), plot(readCSV(0), "None", "None")]
+)
+customStartStopExportBtn = tk.Button(
+    gui,
+    text="Export Cropped",
+    command=lambda: exportCroppedCSV()
+)
+rax = plt.axes([0.79, 0.12, 0.2, 0.2])
+rax.set_visible(False)
+check = CheckButtons(rax, ("Hide P left", "Hide P center", "Hide P right", "Hide Acc Mag"), (False, False, False, False))
+check.on_clicked(GetVisibility)
 savedGraphsBtn.place(relx=.2,rely=0)
+confidenceGraphBtn.place(relx=.4,rely=0)
 newGraphBtn.place(relx= .1, rely= 0)
+customPointList = ttk.Treeview(gui, column=("ID", "Name", "Time[s]"), show="headings", height=6)
+customPointList.column("ID", width=20)
+customPointList.heading("ID", text="ID")
+customPointList.column("Name", width=100)
+customPointList.heading("Name", text="Name")
+customPointList.column("Time[s]", width=60)
+customPointList.heading("Time[s]", text="Time[s]")
 
 if __name__ == "__main__":
     GUI()

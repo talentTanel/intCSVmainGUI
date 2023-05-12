@@ -1,5 +1,5 @@
 [
-    {"id":0,"name":"Nadir","comment":"com"},
-    {"id":1,"name":"Tailwater","comment":"com2"},
+    {"id":0,"name":"Nadir","comment":"Custom comment here"},
+    {"id":1,"name":"Tailwater","comment":""},
     {"id":2,"name":"Custom1","comment":""}
 ]
