@@ -76,6 +76,7 @@ def onClickLegend(event):
 
 # Exports points of interest and filename to a .CSV file
 def exportToCSV():
+    createFolder("Export")
     listChildren = customPointList.get_children()
     header, rowHeader = ["File Name,", "INJECTION"], []
     values = []
@@ -93,7 +94,8 @@ def exportToCSV():
         header.extend([temp["values"][1]])
     if values != None:
         try:
-            with open("export_"+fileName, 'w', newline="") as file:
+            os.chdir(".\\Export")
+            with open("ROI_values_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(header)
                 writer.writerow(values)
@@ -114,11 +116,13 @@ def exportToCSV():
                             k = k + 1
                     arr.extend(extension)
                     writer.writerow(arr)
+                os.chdir("..")
         except Exception as e:
             print(e)
 
 # Exports full data between two custom points
 def exportCroppedCSV():
+    createFolder("Export")
     id1 = txtStartCustom.get()
     id2 = txtStopCustom.get()
     if (id1 != "" and id2 != ""):
@@ -129,13 +133,20 @@ def exportCroppedCSV():
         newData = customPointDataCropping(id1, id2, data)
         if (newData != data):
             try:
+                os.chdir(".\\Export")
                 with open(exportName, "w", newline="") as file:
                     writer = csv.writer(file)
                     writer.writerow(header)
                     for row in newData:
                         writer.writerow(row)
+                os.chdir("..")
             except Exception as e:
                 print(e)
+
+# Creates a folder in current directory if it does not exist
+def createFolder(name):
+    if not os.path.exists(name):
+        os.mkdir(name)
 
 # Sets the options and commands for each item in the right-click menu on the plot
 def onRightClick(event):
@@ -668,7 +679,7 @@ class confidenceGraph:
     # Graphs the confidence graph onto the class window
     def graphPressureConf(self, df_combined):
         self.graphConf[0].clear()
-        self.graphConf[0].set_title("temp")
+        self.graphConf[0].set_title(os.getcwd().rsplit("\\", 1)[1]) # Title is current folder name
         self.setResolution()
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
