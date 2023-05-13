@@ -674,6 +674,7 @@ class confidenceGraph:
         self.canvasConf.get_tk_widget().pack()
 
         self.Buttons()
+        self.fileNames, self.normalisedRawData = [], []
         self.confGUI.mainloop()
 
     # Graphs the confidence graph onto the class window
@@ -716,6 +717,7 @@ class confidenceGraph:
                 self.lblErr.place(relx=.65, rely=.9)
                 break
             self.graphConf[0].plot(tsNormalised, onePressureNew, color="gray", linewidth=0.4)
+            self.normalisedRawData.append([tsNormalised, onePressureNew])
         self.meanPlot, = self.graphConf[0].plot(tsNormalised, newMean, color='b', alpha=1, linewidth=5)
         self.medianPlot, = self.graphConf[0].plot(tsNormalised, newMedian, color='b', alpha=1, linewidth=5)
         self.medianPlot.set_visible(not self.medianPlot.get_visible()) # by default show mean not median
@@ -816,6 +818,7 @@ class confidenceGraph:
                 df = pd.read_csv(filePath)
                 df['filename'] = filename
                 dfTemp.append(df)
+                self.fileNames.append(filename)
         self.dataArr = pd.concat(dfTemp)
         self.graphPressureConf(self.dataArr)
         self.graphMagnitudeConf(self.dataArr)
@@ -833,9 +836,25 @@ class confidenceGraph:
             btnRedraw = tk.Button(self.confGUI, text="Redraw", command=lambda: [self.graphPressureConf(self.dataArr), self.graphMagnitudeConf(self.dataArr)])
             btnRedraw.place(relx=.75, rely=.85)
             self.lblErr = tk.Label(self.confGUI, text="Change the resolution", fg="red")
+            exportBtn = tk.Button(
+                self.confGUI,
+                text="Export raw data",
+                command=lambda: self.exportRawData()
+            )
+            exportBtn.place(relx=.8, rely=.85)
         if self.txtRes.get() == "":
             self.txtRes.insert(tk.END, "1000")   
         self.lblErr.place_forget()
+
+    def exportRawData(self):
+        i = 0
+        for fileName in self.fileNames:
+            with open("normalised_"+fileName, 'w', newline="") as file:
+                print(self.normalisedRawData[i])
+                writer = csv.writer(file)
+                writer.writerow(self.normalisedRawData[i])
+                i = i + 1
+
 
 # GUI elements and their placement
 gui = tk.Tk()
