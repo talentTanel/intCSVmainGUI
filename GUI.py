@@ -847,7 +847,6 @@ class confidenceGraph:
         self.lblErr.place_forget()
 
     def exportRawData(self):
-        i = 0
         createFolder("normalised")
         os.chdir(".\\normalised")
         normalisedData = []
@@ -855,12 +854,15 @@ class confidenceGraph:
             normalisedData.append(row)
         for i in range(len(self.fileNames)):
             normalisedData.pop(0)
-    
+        #print(normalisedData[0][1])
+        i = 0
+        self.fileNames.reverse()
         for fileName in self.fileNames:
             with open("normalised_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
-                for arr in normalisedData:
-                    writer.writerows(arr)
+                writer.writerow(['ts', 'pressure'])
+                # Need to turn normalisedData into a sequence of lists to write into columns not rows
+                writer.writerows(map(lambda ts, prs: [ts, prs], normalisedData[i][0], normalisedData[i][1]))
                 i = i + 1
         os.chdir("..")
 
