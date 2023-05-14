@@ -848,12 +848,21 @@ class confidenceGraph:
 
     def exportRawData(self):
         i = 0
+        createFolder("normalised")
+        os.chdir(".\\normalised")
+        normalisedData = []
+        for row in self.normalisedRawData: # Deleting original data from normalised data
+            normalisedData.append(row)
+        for i in range(len(self.fileNames)):
+            normalisedData.pop(0)
+    
         for fileName in self.fileNames:
             with open("normalised_"+fileName, 'w', newline="") as file:
-                print(self.normalisedRawData[i])
                 writer = csv.writer(file)
-                writer.writerow(self.normalisedRawData[i])
+                for arr in normalisedData:
+                    writer.writerows(arr)
                 i = i + 1
+        os.chdir("..")
 
 
 # GUI elements and their placement
