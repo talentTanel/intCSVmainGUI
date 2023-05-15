@@ -681,10 +681,13 @@ class confidenceGraph:
     def graphPressureConf(self, df_combined):
         self.graphConf[0].clear()
         self.graphConf[0].set_title(os.getcwd().rsplit("\\", 1)[1]) # Title is current folder name
-        self.setResolution()
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
-        tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # normalised time from 0 to 1 where user can set resolution?
+        try: 
+            self.txtRes.winfo_exists()
+            tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # normalised time from 0 to 1 where user can set resolution?
+        except:
+            tsNormalised = np.arange(0, 1, 1/1000)
 
             
         df_grouped = df_combined.groupby('Time [ms]')['PL [hPa]'].agg(['mean', 'std', 'median']) # get mean & standard deviation
@@ -707,14 +710,16 @@ class confidenceGraph:
 
         self.graphConf[0].fill_between(tsNormalised, lowerBound, upperBound, color='b', alpha=0.2)
 
-        for filename in set(df_combined['filename']): # Normalised time graphing one file dataset at a time
-            file_data = df_combined[df_combined['filename'] == filename]
-
+        i = 0
+        while(i != 4):
+            file_data = df_combined[df_combined['filename'] == self.fileNames[i]]
             f = interpolate.interp1d(file_data['Time [ms]'], file_data['PL [hPa]'])
             try:
                 onePressureNew = f(tsNormalised)
+                i = i + 1
             except ValueError:
                 self.lblErr.place(relx=.65, rely=.9)
+                i = 4
                 break
             self.graphConf[0].plot(tsNormalised, onePressureNew, color="gray", linewidth=0.4)
             self.normalisedRawData.append([tsNormalised, onePressureNew])
@@ -724,15 +729,20 @@ class confidenceGraph:
 
         self.canvasConf.draw()
         self.meanOrMedian()
+        self.setResolution()
         gc.collect()
 
     # Graphs the magnitude graph onto the class window
     def graphMagnitudeConf(self, df_combined):
         self.graphConf[1].clear()
-        self.setResolution()
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
-        tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # normalised time from 0 to 1 where user can set resolution?
+        df_combined.sort_values(by='filename', ascending=True, inplace=True)
+        try: 
+            self.txtRes.winfo_exists()
+            tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # normalised time from 0 to 1 where user can set resolution?
+        except:
+            tsNormalised = np.arange(0, 1, 1/1000)
         df_combined['mag'] = np.sqrt(pow(df_combined['AX [m/s2]'],2) + pow(df_combined['AY [m/s2]'],2) + pow(df_combined['AZ [m/s2]'],2)) # acceleration magnitude
         
 
@@ -756,21 +766,25 @@ class confidenceGraph:
 
         self.graphConf[1].fill_between(tsNormalised, lowerBound, upperBound, color='r', alpha=0.2)
 
-        for filename in set(df_combined['filename']): # Normalised time graphing one file dataset at a time
-            file_data = df_combined[df_combined['filename'] == filename]
-
+        i = 0
+        while(i != 4):
+            file_data = df_combined[df_combined['filename'] == self.fileNames[i]]
             f = interpolate.interp1d(file_data['Time [ms]'], file_data['mag'])
             try:
                 onePressureNew = f(tsNormalised)
+                i = i + 1
             except ValueError:
                 self.lblErr.place(relx=.65, rely=.9)
+                i = 4
                 break
             self.graphConf[1].plot(tsNormalised, onePressureNew, color="gray", linewidth=0.4)
+
         self.meanPlotMag, = self.graphConf[1].plot(tsNormalised, newMean, color='r', alpha=1, linewidth=5)
         self.medianPlotMag, = self.graphConf[1].plot(tsNormalised, newMedian, color='r', alpha=1, linewidth=5)
         self.medianPlotMag.set_visible(not self.medianPlotMag.get_visible()) # by default show mean not median
 
         self.canvasConf.draw()
+        self.setResolution()
         gc.collect()
 
     # Swaps which plot is visible on the graph - either mean or median
@@ -856,7 +870,7 @@ class confidenceGraph:
             normalisedData.pop(0)
         #print(normalisedData[0][1])
         i = 0
-        self.fileNames.reverse()
+        print(self.fileNames)
         for fileName in self.fileNames:
             with open("normalised_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
