@@ -31,13 +31,33 @@ def plot(graphData, startTime, stopTime):
     graph.clear()
     global lined, lines
     ts, pl, pc, pr, mag = [], [], [], [], []
-    ts, pl, pc, pr, mag = appendElements(ts, pl, pc, pr, mag, graphData)
-    ts, pl, pc, pr, mag = startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime)
-    lPlot, = graph.plot(ts, pl, "-r", label="P Left") 
-    cPlot, = graph.plot(ts, pc, "-b", label="P Center")
-    rPlot, = graph.plot(ts, pr, "-k", label="P Right")
-    mPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
-    lines = [lPlot, cPlot, rPlot, mPlot]
+    if len(graphData[0]) != 3:
+        ts, pl, pc, pr, mag = appendElements(ts, pl, pc, pr, mag, graphData)
+        ts, pl, pc, pr, mag = startStopTimes(ts, pl, pc, pr, mag, startTime, stopTime)
+        lPlot, = graph.plot(ts, pl, "-r", label="P Left") 
+        cPlot, = graph.plot(ts, pc, "-b", label="P Center")
+        rPlot, = graph.plot(ts, pr, "-k", label="P Right")
+        mPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ", linewidth=.8)
+        lines = [lPlot, cPlot, rPlot, mPlot]
+
+
+    else: # This is for when using a .csv file that was exported from confidence graph
+        for i in range(len(graphData)):
+            ts.append(float(graphData[i][0]))
+            pl.append(float(graphData[i][1]))
+        for i in range(len(graphData)):
+            mag.append(np.mean(pl)+float(graphData[i][2]))
+        if(isFloat(startTime) == True):
+            ts = [x for x in ts if x >= float(startTime)]
+            pl, pl, pl, mag = sameLength(ts,pl,pl,pl,mag,"1")
+        if(isFloat(stopTime) == True):
+            ts = [x for x in ts if x <= float(stopTime)]
+            pl, pl, pl, mag = sameLength(ts,pl,pl,pl,mag,"end1")
+        prsPlot, = graph.plot(ts, pl, "-b", label="Pressure")
+        magPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ")
+        lines = [prsPlot, magPlot]
+
+        
     lined = {}
     injectionPointDef(pl, ts)
     setLegend()
@@ -574,10 +594,16 @@ def sameLength(X, pl, pc, pr, mag, type):
             pc.pop()
             pr.pop()
             mag.pop()
-        else:
+        elif(type == "0"):
             pl.pop(0)
             pc.pop(0)
             pr.pop(0)
+            mag.pop(0)
+        elif(type == "end1"): 
+            pl.pop()
+            mag.pop()
+        else: 
+            pl.pop(0)
             mag.pop(0)
     return pl, pc, pr, mag
 
