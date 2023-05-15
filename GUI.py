@@ -683,6 +683,7 @@ class confidenceGraph:
         self.graphConf[0].set_title(os.getcwd().rsplit("\\", 1)[1]) # Title is current folder name
         # Normalize time from 0 to 1
         df_combined['Time [ms]'] = (df_combined['Time [ms]']-np.min(df_combined['Time [ms]']))/(np.max(df_combined['Time [ms]'])-np.min(df_combined['Time [ms]']))
+        df_combined['mag'] = np.sqrt(pow(df_combined['AX [m/s2]'],2) + pow(df_combined['AY [m/s2]'],2) + pow(df_combined['AZ [m/s2]'],2))
         try: 
             self.txtRes.winfo_exists()
             tsNormalised = np.arange(0, 1, 1/int(self.txtRes.get())) # normalised time from 0 to 1 where user can set resolution?
@@ -711,25 +712,26 @@ class confidenceGraph:
         self.graphConf[0].fill_between(tsNormalised, lowerBound, upperBound, color='b', alpha=0.2)
 
         i = 0
-        while(i != 4):
+        while(i != len(self.fileNames)):
             file_data = df_combined[df_combined['filename'] == self.fileNames[i]]
             f = interpolate.interp1d(file_data['Time [ms]'], file_data['PL [hPa]'])
+            f2 = interpolate.interp1d(file_data['Time [ms]'], file_data['mag'])
             try:
                 onePressureNew = f(tsNormalised)
+                oneMagNew = f2(tsNormalised)
                 i = i + 1
             except ValueError:
                 self.lblErr.place(relx=.65, rely=.9)
-                i = 4
+                i = len(self.fileNames)
                 break
             self.graphConf[0].plot(tsNormalised, onePressureNew, color="gray", linewidth=0.4)
-            self.normalisedRawData.append([tsNormalised, onePressureNew])
+            self.normalisedRawData.append([tsNormalised, onePressureNew, oneMagNew])
         self.meanPlot, = self.graphConf[0].plot(tsNormalised, newMean, color='b', alpha=1, linewidth=5)
         self.medianPlot, = self.graphConf[0].plot(tsNormalised, newMedian, color='b', alpha=1, linewidth=5)
         self.medianPlot.set_visible(not self.medianPlot.get_visible()) # by default show mean not median
 
         self.canvasConf.draw()
         self.meanOrMedian()
-        self.setResolution()
         gc.collect()
 
     # Graphs the magnitude graph onto the class window
@@ -767,18 +769,18 @@ class confidenceGraph:
         self.graphConf[1].fill_between(tsNormalised, lowerBound, upperBound, color='r', alpha=0.2)
 
         i = 0
-        while(i != 4):
+        while(i != len(self.fileNames)):
             file_data = df_combined[df_combined['filename'] == self.fileNames[i]]
             f = interpolate.interp1d(file_data['Time [ms]'], file_data['mag'])
             try:
-                onePressureNew = f(tsNormalised)
+                oneMagNew = f(tsNormalised)
+                #self.normalisedRawData[i][2] = oneMagNew
                 i = i + 1
             except ValueError:
                 self.lblErr.place(relx=.65, rely=.9)
-                i = 4
+                i = len(self.fileNames)
                 break
-            self.graphConf[1].plot(tsNormalised, onePressureNew, color="gray", linewidth=0.4)
-
+            self.graphConf[1].plot(tsNormalised, oneMagNew, color="gray", linewidth=0.4)
         self.meanPlotMag, = self.graphConf[1].plot(tsNormalised, newMean, color='r', alpha=1, linewidth=5)
         self.medianPlotMag, = self.graphConf[1].plot(tsNormalised, newMedian, color='r', alpha=1, linewidth=5)
         self.medianPlotMag.set_visible(not self.medianPlotMag.get_visible()) # by default show mean not median
@@ -850,10 +852,11 @@ class confidenceGraph:
             btnRedraw = tk.Button(self.confGUI, text="Redraw", command=lambda: [self.graphPressureConf(self.dataArr), self.graphMagnitudeConf(self.dataArr)])
             btnRedraw.place(relx=.75, rely=.85)
             self.lblErr = tk.Label(self.confGUI, text="Change the resolution", fg="red")
+            temp = partial(self.exportRawData)
             exportBtn = tk.Button(
                 self.confGUI,
                 text="Export raw data",
-                command=lambda: self.exportRawData()
+                command= temp
             )
             exportBtn.place(relx=.8, rely=.85)
         if self.txtRes.get() == "":
@@ -868,15 +871,13 @@ class confidenceGraph:
             normalisedData.append(row)
         for i in range(len(self.fileNames)):
             normalisedData.pop(0)
-        #print(normalisedData[0][1])
         i = 0
-        print(self.fileNames)
         for fileName in self.fileNames:
             with open("normalised_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(['ts', 'pressure'])
+                writer.writerow(['ts', 'pressure', 'acc_mag'])
                 # Need to turn normalisedData into a sequence of lists to write into columns not rows
-                writer.writerows(map(lambda ts, prs: [ts, prs], normalisedData[i][0], normalisedData[i][1]))
+                writer.writerows(map(lambda ts, prs, mag: [ts, prs, mag], normalisedData[i][0], normalisedData[i][1], normalisedData[i][2]))
                 i = i + 1
         os.chdir("..")
 
