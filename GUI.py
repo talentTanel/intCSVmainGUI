@@ -96,8 +96,10 @@ def onClickLegend(event):
 
 # Exports points of interest and filename to a .CSV file
 def exportToCSV():
-    try: folderName = lblScenarioText.cget("text").rsplit("\n")[0]
-    except: folderName = "Export"
+    if lblScenarioText.cget("text").rsplit("\n")[0] != "":
+        folderName = lblScenarioText.cget("text").rsplit("\n")[0]
+    else:
+        folderName = "Export"
     createFolder(folderName)
     
     listChildren = customPointList.get_children()
@@ -117,7 +119,7 @@ def exportToCSV():
         header.extend([temp["values"][1]])
     if values != None:
         try:
-            os.chdir(".\\"+folderName)
+            os.chdir(".\\{}".format(folderName))
             with open("ROI_values_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(header)
@@ -145,8 +147,10 @@ def exportToCSV():
 
 # Exports full data between two custom points
 def exportCroppedCSV():
-    try: folderName = lblScenarioText.cget("text").rsplit("\n")[0]
-    except: folderName = "Export"
+    if lblScenarioText.cget("text").rsplit("\n")[0] != "":
+        folderName = lblScenarioText.cget("text").rsplit("\n")[0]
+    else:
+        folderName = "Export"
     createFolder(folderName)
     id1 = txtStartCustom.get()
     id2 = txtStopCustom.get()
@@ -158,15 +162,15 @@ def exportCroppedCSV():
         newData = customPointDataCropping(id1, id2, data)
         if (newData != data):
             try:
-                os.chdir(".\\"+folderName)
+                os.chdir(".\\{}".format(folderName))
                 with open(exportName, "w", newline="") as file:
                     writer = csv.writer(file)
                     writer.writerow(header)
                     for row in newData:
                         writer.writerow(row)
-                os.chdir("..")
             except Exception as e:
                 print(e)
+            os.chdir("..")
 
 # Creates a folder in current directory if it does not exist
 def createFolder(name):
