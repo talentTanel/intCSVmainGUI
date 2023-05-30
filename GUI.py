@@ -96,7 +96,7 @@ def onClickLegend(event):
 
 # Exports points of interest and filename to a .CSV file
 def exportToCSV():
-    try: folderName = lblScenarioText.cget("text").split()[0]
+    try: folderName = lblScenarioText.cget("text").rsplit("\n")[0]
     except: folderName = "Export"
     createFolder(folderName)
     
@@ -145,7 +145,7 @@ def exportToCSV():
 
 # Exports full data between two custom points
 def exportCroppedCSV():
-    try: folderName = lblScenarioText.cget("text").split()[0]
+    try: folderName = lblScenarioText.cget("text").rsplit("\n")[0]
     except: folderName = "Export"
     createFolder(folderName)
     id1 = txtStartCustom.get()
