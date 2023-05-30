@@ -57,7 +57,7 @@ def plot(graphData, startTime, stopTime):
         magPlot, = graph.plot(ts, mag, "-r", label="Acc XYZ")
         lines = [prsPlot, magPlot]
 
-        
+
     lined = {}
     injectionPointDef(pl, ts)
     setLegend()
@@ -96,7 +96,10 @@ def onClickLegend(event):
 
 # Exports points of interest and filename to a .CSV file
 def exportToCSV():
-    createFolder("Export")
+    try: folderName = lblScenarioText.cget("text").split()[0]
+    except: folderName = "Export"
+    createFolder(folderName)
+    
     listChildren = customPointList.get_children()
     header, rowHeader = ["File Name,", "INJECTION"], []
     values = []
@@ -114,7 +117,7 @@ def exportToCSV():
         header.extend([temp["values"][1]])
     if values != None:
         try:
-            os.chdir(".\\Export")
+            os.chdir(".\\"+folderName)
             with open("ROI_values_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(header)
@@ -142,7 +145,9 @@ def exportToCSV():
 
 # Exports full data between two custom points
 def exportCroppedCSV():
-    createFolder("Export")
+    try: folderName = lblScenarioText.cget("text").split()[0]
+    except: folderName = "Export"
+    createFolder(folderName)
     id1 = txtStartCustom.get()
     id2 = txtStopCustom.get()
     if (id1 != "" and id2 != ""):
@@ -153,7 +158,7 @@ def exportCroppedCSV():
         newData = customPointDataCropping(id1, id2, data)
         if (newData != data):
             try:
-                os.chdir(".\\Export")
+                os.chdir(".\\"+folderName)
                 with open(exportName, "w", newline="") as file:
                     writer = csv.writer(file)
                     writer.writerow(header)
@@ -901,7 +906,7 @@ class confidenceGraph:
         for fileName in self.fileNames:
             with open("normalised_"+fileName, 'w', newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(['ts', 'pressure', 'acc_mag'])
+                writer.writerow(['ts [s]', 'pressure [mbar]', 'acc_mag [m/s2]'])
                 # Need to turn normalisedData into a sequence of lists to write into columns not rows
                 writer.writerows(map(lambda ts, prs, mag: [ts, prs, mag], normalisedData[i][0], normalisedData[i][1], normalisedData[i][2]))
                 i = i + 1
@@ -983,7 +988,7 @@ customStartStopResetBtn = tk.Button(
 )
 customStartStopExportBtn = tk.Button(
     gui,
-    text="Export Cropped",
+    text="Export Raw Cropped",
     command=lambda: exportCroppedCSV()
 )
 #savedGraphsBtn.place(relx=.2,rely=0)
