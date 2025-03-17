@@ -296,12 +296,12 @@ def saveCustomToJSON(id, name, comment):
     newPoint = {"id": id, "name": name, "comment": comment}
     data = readJSON()
     data.append(newPoint)
-    with open(__file__.rsplit("GUI.py",1)[0]+"\points.json", "w") as file:    
+    with open(__file__.rsplit("GUI.py",1)[0]+"points.json", "w") as file:    
         json.dump(data, file)
 
 # Returns the data from "points.json" file
 def readJSON():
-    with open(__file__.rsplit("GUI.py",1)[0]+"\points.json", "r") as file:
+    with open(__file__.rsplit("GUI.py",1)[0]+"points.json", "r") as file:
         return json.load(file)
 
 # Window for creating new custom points
